@@ -38,35 +38,35 @@ LFP Scripts
 
 This package provides the following command-line scripts:
 
-**lfp_file_info**
+**lfp_file_info.py**
   Provides general information about any LFP file, including the metadata and
   the data chunks (data size and their sha1 ids).::
-    ./lfp_file_info samples/IMG_0003.lfp
+    ./lfp_file_info.py samples/IMG_0003.lfp
   You may also pass the sha1 id to the command line to get the content of the
   data chunk in standard output.::
-    ./lfp_file_info samples/IMG_0001.lfp sha1-992ae2d9f755077e50de7b9b1357e873885b3382
+    ./lfp_file_info.py samples/IMG_0001.lfp sha1-992ae2d9f755077e50de7b9b1357e873885b3382
 
-**lfp_picture_info**
+**lfp_picture_info.py**
   Provides detailed information about a picture file.::
-    ./lfp_picture_info samples/IMG_0003.lfp
+    ./lfp_picture_info.py samples/IMG_0003.lfp
   The *Frame* section provides the information about the RAW picture data, and
   the *RefocusStack* section provides the information about the processed image
   data, including the number of JPEG files and the size of the depth table.
   You will also get a preview of the depth table.
 
-**lfp_storage_extractor**
+**lfp_storage_extractor.py**
   This script provides easier access to embedded files of LFP Storage files.
   Providing the name of the data file, you get the list of files embedded.::
-    ./lfp_storage_extractor data.C.0
+    ./lfp_storage_extractor.py data.C.0
   If you give the script a path, you get the content of that specific file
   in the standard output.::
-    ./lfp_storage_extractor data.C.0 'C:\CALIB\WIFI_MAC_ADDR.TXT'
+    ./lfp_storage_extractor.py data.C.0 'C:\CALIB\WIFI_MAC_ADDR.TXT'
 
-**lfp_picture_viewer**
+**lfp_picture_viewer.py**
   There is also a small application to view and *refocus* LFP Picture files.
   You may provide the name of the Processed LFP Picture file in the
   command-line.::
-    ./lfp_picture_viewer samples/IMG_0001-stk.lfp
+    ./lfp_picture_viewer.py samples/IMG_0001-stk.lfp
 
   *NOTE: This script requires Python Imaging Library (PIL) to run.*
 
