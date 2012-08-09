@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="python-lfp-reader : Python library and command-line scripts to read Lytro LFP files." />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>python-lfp-reader</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/behnam/python-lfp-reader">View on GitHub</a>
+
+          <h1 id="project_title">python-lfp-reader</h1>
+          <h2 id="project_tagline">Python library and command-line scripts to read Lytro LFP files.</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/behnam/python-lfp-reader/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/behnam/python-lfp-reader/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1></h1>
+
+<h1>LFP (Light Field Photography) File Reader</h1>
+
+<p><a href="https://behnam.github.com/python-lfp-reader">https://behnam.github.com/python-lfp-reader</a></p>
+
+<p>Provides a Python library and command-line scripts to read Lytro LFP files, and
+a simple viewer for Lytro LFP Picture files.</p>
+
+<p>Technically, there are two types of LFP files: Picture and Storage.  LFP
+Storage files are used to store the data and configurations for Lytro cameras,
+and LFP Picture (.lfp) files are used to store RAW and/or processed data for
+Lytro light-field pictures.</p>
+
+<p>This is a pure-Python package and should work on any platform.  Please report
+any problems at <a href="https://github.com/behnam/python-lfp-reader/issues">https://github.com/behnam/python-lfp-reader/issues</a>.</p>
+
+<h1>LFP File Format</h1>
+
+<p><em>LFP</em> is a new file format used in <em>Lytro Light Field</em> cameras for the RAW and
+Processed picture files, as well as storing camera information in the Lytro
+Desktop library.</p>
+
+<p><strong>LFP Picture</strong> files have a <code>.lfp</code> extension, and among these, the name of
+the processed picture files end in <code>-stk.lfp</code>, where <em>stk</em> stands for
+refocuse "stack".  Embadding JPEG data with some additional refocus data, the
+<code>stk.lfp</code> files are designed to be used in the Lytro Desktop application and
+on the web.</p>
+
+<p><strong>LFP Storage</strong> files embed various data files, which are identified by a
+pathname, i.e. <code>C:\CALIB\WIFI_MAC_ADDR.TXT</code>.</p>
+
+<h1>LFP Scripts</h1>
+
+<p>This package provides the following command-line scripts:</p>
+
+<p><strong>lfp_file_info.py</strong>
+  Provides general information about any LFP file, including the metadata and
+  the data chunks (data size and their sha1 ids).::
+    ./lfp_file_info.py samples/IMG_0003.lfp
+  You may also pass the sha1 id to the command line to get the content of the
+  data chunk in standard output.::
+    ./lfp_file_info.py samples/IMG_0001.lfp sha1-992ae2d9f755077e50de7b9b1357e873885b3382</p>
+
+<p><strong>lfp_picture_info.py</strong>
+  Provides detailed information about a picture file.::
+    ./lfp_picture_info.py samples/IMG_0003.lfp
+  The <em>Frame</em> section provides the information about the RAW picture data, and
+  the <em>RefocusStack</em> section provides the information about the processed image
+  data, including the number of JPEG files and the size of the depth table.
+  You will also get a preview of the depth table.</p>
+
+<p><strong>lfp_storage_extractor.py</strong>
+  This script provides easier access to embedded files of LFP Storage files.
+  Providing the name of the data file, you get the list of files embedded.::
+    ./lfp_storage_extractor.py data.C.0
+  If you give the script a path, you get the content of that specific file
+  in the standard output.::
+    ./lfp_storage_extractor.py data.C.0 'C:\CALIB\WIFI_MAC_ADDR.TXT'</p>
+
+<p><strong>lfp_picture_viewer.py</strong>
+  There is also a small application to view and <em>refocus</em> LFP Picture files.
+  You may provide the name of the Processed LFP Picture file in the
+  command-line.::
+    ./lfp_picture_viewer.py samples/IMG_0001-stk.lfp</p>
+
+<p><em>NOTE: This script requires Python Imaging Library (PIL) to run.</em></p>
+
+<h1>LFP Reader Library</h1>
+
+<p><strong>LFP Reader library (<code>lfp_reader</code>)</strong> provides direct reading access to all
+data and metadata in any LFP files. For the processed LFP Picture files, you
+can easily access the JPEG data and the depth table. And for LFP Storage files,
+you can access embedded files easily using their pathname.</p>
+
+<p>The main classes in the <code>lfp_reader</code> package are:</p>
+
+<ul>
+<li><code>LfpGenericFile</code></li>
+<li><code>LfpPictureFile</code></li>
+<li><code>LfpStorageFile</code></li>
+</ul><h1>Code License</h1>
+
+<p>This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.</p>
+
+<p>This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.</p>
+
+<p>You should have received a copy of the GNU General Public License
+along with this program.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p>
+
+<h1>Legal Notice</h1>
+
+<p>This project is NOT affiliated with LYTRO, INC.  Lytro (R) is a trademark of
+LYTRO, INC. <a href="http://www.lytro.com/">http://www.lytro.com/</a></p>
+
+<p>Some of this work is based on Nirav Patel's <code>lfptools</code> project and his
+analysis on LFP file format.  <a href="https://github.com/nrpatel/lfptools">https://github.com/nrpatel/lfptools</a></p>
+
+<p>Copyright (C) 2012 Behnam Esfahbod. <a href="http://behnam.es/">http://behnam.es/</a></p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">python-lfp-reader maintained by <a href="https://github.com/behnam">behnam</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-34009818-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+
+  </body>
+</html>
