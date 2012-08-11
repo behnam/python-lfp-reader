@@ -39,6 +39,18 @@ LFP Scripts
 This package provides the following command-line scripts.
 
 
+Picture Viewer
+--------------
+
+**lfp_picture_viewer.py**
+  A small application to view and *refocus* LFP Picture files.
+  You may provide the name of the Processed LFP Picture file in the
+  command-line.::
+    ./lfp_picture_viewer.py samples/IMG_0001-stk.lfp
+
+  *NOTE: This script requires Python Imaging Library (PIL) to run.*
+
+
 File Information Scripts
 ------------------------
 
@@ -58,35 +70,29 @@ File Information Scripts
   data, including the number of JPEG files and the size of the depth table.
   You will also get a preview of the depth table.
 
-**lfp_storage_extractor.py**
-  This script provides easier access to embedded files of LFP Storage files.
-  Providing the name of the data file, you get the list of files embedded.::
+**lfp_storage_info.py**
+  Providing a list of embedded files in an LFP Storage file.::
     ./lfp_storage_extractor.py data.C.0
-  If you give the script a path, you get the content of that specific file
-  in the standard output.::
-    ./lfp_storage_extractor.py data.C.0 'C:\CALIB\WIFI_MAC_ADDR.TXT'
 
 
-Picture Viewer
---------------
-
-**lfp_picture_viewer.py**
-  There is also a small application to view and *refocus* LFP Picture files.
-  You may provide the name of the Processed LFP Picture file in the
-  command-line.::
-    ./lfp_picture_viewer.py samples/IMG_0001-stk.lfp
-
-  *NOTE: This script requires Python Imaging Library (PIL) to run.*
-
-
-Picture Exporter
+Exporters
 ----------------
 
+**lfp_file_exporter.py**
+  Exports metadata and data sections of a generic file into separate files.::
+    ./lfp_file_exporter.py samples/IMG_0001.lfp
+
 **lfp_picture_exporter.py**
-  Exports metadata and raw and processed data of a picture file into separate
-  files.::
+  Exports raw and processed data of a picture file into separate files.::
     ./lfp_picture_exporter.py samples/IMG_0001.lfp
     ./lfp_picture_exporter.py samples/IMG_0001-stk.lfp
+
+**lfp_storage_exporter.py**
+  Exports all the embedded files of a storage file into separate files.::
+    ./lfp_storage_exporter.py data.C.0
+  If you give the script a path, you get the content of that specific file
+  in the standard output.::
+    ./lfp_storage_exporter.py data.C.0 'C:\CALIB\WIFI_MAC_ADDR.TXT'
 
 
 LFP Reader Library

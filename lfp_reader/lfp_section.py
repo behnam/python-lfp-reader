@@ -104,8 +104,8 @@ class LfpSection:
     ################
     # Exporting
 
-    def export(self, exp_path):
-        if self.size == 0:
+    def export_data(self, exp_path):
+        if self.data is None:
             raise LfpReadError("No data to export for section %s!" % self.NAME)
         with open(exp_path, 'wb') as exp_file:
             exp_file.write(self.data)

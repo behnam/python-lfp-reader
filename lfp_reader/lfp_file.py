@@ -103,17 +103,29 @@ class LfpGenericFile:
     ################
     # Exporting
 
-    def _export_path(self, exp_name, exp_ext):
-        lfp_root, lfp_ext = os.path.splitext(self._file_path)
-        return "%s__%s.%s" % (lfp_root, exp_name, exp_ext)
-
-    def export_meta(self):
-        self.meta.export(self._export_path('lfp_meta', 'json'))
-
     def export(self):
         self.export_meta()
+        self.export_chunks()
+
+    def export_meta(self):
+        self.meta.export_data(self._export_path('lfp_meta', 'json'))
+
+    def export_chunks(self):
         for sha1, chunk in self.chunks_sorted:
-            chunk.export(self._export_path(sha1[5:], 'data'))
+            chunk.export_data(self._export_path(sha1[5:], 'data'))
+
+    def _export_path(self, exp_name, exp_ext=None):
+        prefix, lfp_ext = os.path.splitext(self._file_path)
+        if lfp_ext != '.lfp':
+            prefix = self._file_path
+        if exp_ext is None:
+            return "%s__%s" % (prefix, exp_name)
+        else:
+            return "%s__%s.%s" % (prefix, exp_name, exp_ext)
+
+    def _export_data(self, exp_name, exp_ext, exp_data):
+        with open(self._export_path(exp_name, exp_ext), 'wb') as exp_file:
+            exp_file.write(exp_data)
 
 
 ################################
@@ -228,21 +240,24 @@ class LfpPictureFile(LfpGenericFile):
         return txt
 
     def export(self):
-        self.export_meta()
-
         if self.frame:
-            self.frame.metadata.export(self._export_path('frame_metadata', 'json'))
-            self.frame.image.export(self._export_path('frame', 'raw'))
-            self.frame.private_metadata.export(self._export_path('frame_private_metadata', 'json'))
-
+            self.export_frame()
         if self.refocus_stack:
-            for idx, image in enumerate(self.refocus_stack.images):
-                image.chunk.export(self._export_path('focused_%02d' % idx,
-                    image.representation))
-            self.refocus_stack.depth_lut.chunk.export(self._export_path('depth_lut',
-                self.refocus_stack.depth_lut.representation))
-            with open(self._export_path('depth_lut', 'txt'), 'wb') as exp_file:
-                exp_file.write(self.get_depth_lut_txt())
+            self.export_refocus_stack()
+
+    def export_frame(self):
+        self.frame.metadata.export_data(self._export_path('frame_metadata', 'json'))
+        self.frame.image.export_data(self._export_path('frame', 'raw'))
+        self.frame.private_metadata.export_data(self._export_path('frame_private_metadata', 'json'))
+
+    def export_refocus_stack(self):
+        for idx, image in enumerate(self.refocus_stack.images):
+            image.chunk.export_data(self._export_path('focused_%02d' % idx,
+                image.representation))
+        self.refocus_stack.depth_lut.chunk.export_data(self._export_path('depth_lut',
+            self.refocus_stack.depth_lut.representation))
+        self._export_data('depth_lut', 'txt', self.get_depth_lut_txt())
+
 
 ################################
 # Storage file
@@ -254,6 +269,12 @@ class LfpStorageError(LfpGenericError):
 class LfpStorageFile(LfpGenericFile):
     """Load an LFP Storage file and read the data chunks on-demand
     """
+
+    files = {}
+
+    @property
+    def files_sorted(self):
+        return sorted(self.files.iteritems(), key=operator.itemgetter(0))
 
     ################
     # Internals
@@ -267,11 +288,18 @@ class LfpStorageFile(LfpGenericFile):
     def process(self):
         try:
             files_list = self.meta.content['files']
-            self.files = dict( (fj['name'], self.chunks[fj['dataRef']])
-                    for fj in files_list )
+            self.files = dict( (f['name'], self.chunks[f['dataRef']])
+                    for f in files_list )
         except KeyError:
             raise LfpStorageError("Not a valid LFP Storage file")
 
     ################
     # Exporting
+
+    def export(self):
+        self.export_files()
+
+    def export_files(self):
+        for path, chunk in self.files_sorted:
+            chunk.export_data(self._export_path(path[3:].replace('\\', '__')))
 

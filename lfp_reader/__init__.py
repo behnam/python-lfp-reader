@@ -74,7 +74,7 @@ from lfp_file import (
         )
 
 
-__version__     = "1.2"
+__version__     = "1.3"
 __author__      = "Behnam Esfahbod"
 __copyright__   = "Copyright 2012, Behnam Esfahbod"
 __credits__     = ["Behnam Esfahbod"]
