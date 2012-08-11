@@ -65,7 +65,19 @@ pathname, i.e. <code>C:\CALIB\WIFI_MAC_ADDR.TXT</code>.</p>
 
 <h1>LFP Scripts</h1>
 
-<p>This package provides the following command-line scripts:</p>
+<p>This package provides the following command-line scripts.</p>
+
+<h2>Picture Viewer</h2>
+
+<p><strong>lfp_picture_viewer.py</strong>
+  A small application to view and <em>refocus</em> LFP Picture files.
+  You may provide the name of the Processed LFP Picture file in the
+  command-line.::
+    ./lfp_picture_viewer.py samples/IMG_0001-stk.lfp</p>
+
+<p><em>NOTE: This script requires Python Imaging Library (PIL) to run.</em></p>
+
+<h2>File Information Scripts</h2>
 
 <p><strong>lfp_file_info.py</strong>
   Provides general information about any LFP file, including the metadata and
@@ -83,21 +95,27 @@ pathname, i.e. <code>C:\CALIB\WIFI_MAC_ADDR.TXT</code>.</p>
   data, including the number of JPEG files and the size of the depth table.
   You will also get a preview of the depth table.</p>
 
-<p><strong>lfp_storage_extractor.py</strong>
-  This script provides easier access to embedded files of LFP Storage files.
-  Providing the name of the data file, you get the list of files embedded.::
-    ./lfp_storage_extractor.py data.C.0
+<p><strong>lfp_storage_info.py</strong>
+  Providing a list of embedded files in an LFP Storage file.::
+    ./lfp_storage_extractor.py data.C.0</p>
+
+<h2>Exporters</h2>
+
+<p><strong>lfp_file_exporter.py</strong>
+  Exports metadata and data sections of a generic file into separate files.::
+    ./lfp_file_exporter.py samples/IMG_0001.lfp</p>
+
+<p><strong>lfp_picture_exporter.py</strong>
+  Exports raw and processed data of a picture file into separate files.::
+    ./lfp_picture_exporter.py samples/IMG_0001.lfp
+    ./lfp_picture_exporter.py samples/IMG_0001-stk.lfp</p>
+
+<p><strong>lfp_storage_exporter.py</strong>
+  Exports all the embedded files of a storage file into separate files.::
+    ./lfp_storage_exporter.py data.C.0
   If you give the script a path, you get the content of that specific file
   in the standard output.::
-    ./lfp_storage_extractor.py data.C.0 'C:\CALIB\WIFI_MAC_ADDR.TXT'</p>
-
-<p><strong>lfp_picture_viewer.py</strong>
-  There is also a small application to view and <em>refocus</em> LFP Picture files.
-  You may provide the name of the Processed LFP Picture file in the
-  command-line.::
-    ./lfp_picture_viewer.py samples/IMG_0001-stk.lfp</p>
-
-<p><em>NOTE: This script requires Python Imaging Library (PIL) to run.</em></p>
+    ./lfp_storage_exporter.py data.C.0 'C:\CALIB\WIFI_MAC_ADDR.TXT'</p>
 
 <h1>LFP Reader Library</h1>
 
