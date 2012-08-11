@@ -37,6 +37,7 @@ class LfpReadError(Exception):
 class LfpSection:
     """LFP file section"""
 
+    NAME           = None
     MAGIC          = None
     MAGIC_LENGTH   = 12
     SIZE_LENGTH    = 4        # = 16 - MAGIC_LENGTH
@@ -58,9 +59,9 @@ class LfpSection:
 
     def __repr__(self):
         if self._size > 0:
-            return "%s(%sB)" % (self.CLSNAME, self._size)
+            return "%s(%sB)" % (self.NAME, self._size)
         else:
-            return "%s()" % (self.CLSNAME)
+            return "%s()" % (self.NAME)
 
     @property
     def size(self): return self._size
@@ -82,7 +83,7 @@ class LfpSection:
         # Read and check magic
         magic = self._inf.read(self.MAGIC_LENGTH)
         if magic != self.MAGIC:
-            raise LfpReadError("Invalid magic bytes for section %s!" % self.CLSNAME)
+            raise LfpReadError("Invalid magic bytes for section %s!" % self.NAME)
         # Read size
         self._size = struct.unpack(">i", self._inf.read(self.SIZE_LENGTH))[0]
         if self._size > 0:
@@ -100,18 +101,27 @@ class LfpSection:
             self._inf.seek(-1, 1)
         return self
 
+    ################
+    # Exporting
+
+    def export(self, exp_path):
+        if self.size == 0:
+            raise LfpReadError("No data to export for section %s!" % self.NAME)
+        with open(exp_path, 'wb') as exp_file:
+            exp_file.write(self.data)
+
 
 ################################
 # Section Types
 
 class LfpHeader(LfpSection):
     """LFP file metadata"""
-    CLSNAME = "Header"
+    NAME = "Header"
     MAGIC = "\x89LFP\x0D\x0A\x1A\x0A\x00\x00\x00\x01"
 
 class LfpMeta(LfpSection):
     """LFP file metadata"""
-    CLSNAME = "Meta"
+    NAME = "Meta"
     MAGIC = "\x89LFM\x0D\x0A\x1A\x0A\x00\x00\x00\x00"
 
     _content = None
@@ -124,6 +134,6 @@ class LfpMeta(LfpSection):
 
 class LfpChunk(LfpSection):
     """LFP file data chuck"""
-    CLSNAME = "Chunk"
+    NAME = "Chunk"
     MAGIC = "\x89LFC\x0D\x0A\x1A\x0A\x00\x00\x00\x00"
 

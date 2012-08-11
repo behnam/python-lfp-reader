@@ -36,7 +36,11 @@ pathname, i.e. ``C:\CALIB\WIFI_MAC_ADDR.TXT``.
 LFP Scripts
 ===========
 
-This package provides the following command-line scripts:
+This package provides the following command-line scripts.
+
+
+File Information Scripts
+------------------------
 
 **lfp_file_info.py**
   Provides general information about any LFP file, including the metadata and
@@ -62,6 +66,10 @@ This package provides the following command-line scripts:
   in the standard output.::
     ./lfp_storage_extractor.py data.C.0 'C:\CALIB\WIFI_MAC_ADDR.TXT'
 
+
+Picture Viewer
+--------------
+
 **lfp_picture_viewer.py**
   There is also a small application to view and *refocus* LFP Picture files.
   You may provide the name of the Processed LFP Picture file in the
@@ -69,6 +77,16 @@ This package provides the following command-line scripts:
     ./lfp_picture_viewer.py samples/IMG_0001-stk.lfp
 
   *NOTE: This script requires Python Imaging Library (PIL) to run.*
+
+
+Picture Exporter
+----------------
+
+**lfp_picture_exporter.py**
+  Exports metadata and raw and processed data of a picture file into separate
+  files.::
+    ./lfp_picture_exporter.py samples/IMG_0001.lfp
+    ./lfp_picture_exporter.py samples/IMG_0001-stk.lfp
 
 
 LFP Reader Library

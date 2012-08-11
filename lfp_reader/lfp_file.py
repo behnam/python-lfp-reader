@@ -24,9 +24,10 @@
 """Read and process an LFP Picture or LFP Storage file
 """
 
-import os
+import os, os.path
 from collections import namedtuple
 import struct
+import operator
 
 import lfp_section
 
@@ -48,7 +49,7 @@ class LfpGenericFile:
 
     _file_path = None
     _file_size = None
-    _inf = None
+    _file = None
 
     ################
     # Internals
@@ -56,26 +57,21 @@ class LfpGenericFile:
     def __init__(self, file_path):
         self._file_path = file_path
         self._file_size = os.stat(file_path).st_size
-        self.open_file()
+        self._file = open(self._file_path, 'rb')
 
     def __del__(self):
-        if self._inf is not None and not self._inf.closed:
-            self.close_file()
+        self._file.close()
 
     def __repr__(self):
         return "LfpGenericFile(%s, %s, %d chunks)" % (self.header, self.meta, len(self.chunks))
 
     @property
-    def file_path(self): return self._file_path
+    def file_path(self):
+        return self._file_path
 
-    ################
-    # File handling
-
-    def open_file(self):
-        self._inf = open(self._file_path, 'rb')
-
-    def close_file(self):
-        self._inf.close()
+    @property
+    def chunks_sorted(self):
+        return sorted(self.chunks.iteritems(), key=operator.itemgetter(0))
 
     ################
     # Loading
@@ -92,17 +88,32 @@ class LfpGenericFile:
 
     def _load_meta(self):
         # Read file
-        self.header = lfp_section.LfpHeader(self._inf)
-        self.meta = lfp_section.LfpMeta(self._inf)
+        self.header = lfp_section.LfpHeader(self._file)
+        self.meta = lfp_section.LfpMeta(self._file)
 
     def _load_chunks(self):
-        while self._inf.tell() <= self._file_size - lfp_section.LfpSection.MAGIC_LENGTH:
-            chunk = lfp_section.LfpChunk(self._inf)
+        while self._file.tell() <= self._file_size - lfp_section.LfpSection.MAGIC_LENGTH:
+            chunk = lfp_section.LfpChunk(self._file)
             self.chunks[chunk.sha1] = chunk
 
     def process(self):
         """Subclasses shall implement this function"""
         pass
+
+    ################
+    # Exporting
+
+    def _export_path(self, exp_name, exp_ext):
+        lfp_root, lfp_ext = os.path.splitext(self._file_path)
+        return "%s__%s.%s" % (lfp_root, exp_name, exp_ext)
+
+    def export_meta(self):
+        self.meta.export(self._export_path('lfp_meta', 'json'))
+
+    def export(self):
+        self.export_meta()
+        for sha1, chunk in self.chunks_sorted:
+            chunk.export(self._export_path(sha1[5:], 'data'))
 
 
 ################################
@@ -126,7 +137,7 @@ RefocusImage = _lfp_picture_data_class('RefocusImage',
         ('lambda_ width height representation chunk'))
 
 DepthLut = _lfp_picture_data_class('DepthLut',
-        ('width height representation table'))
+        ('width height representation table chunk'))
 
 
 class LfpPictureFile(LfpGenericFile):
@@ -146,7 +157,7 @@ class LfpPictureFile(LfpGenericFile):
                 (version['major'], version['minor'], image_size))
 
     ################
-    # Processing
+    # Loading
 
     def process(self):
         try:
@@ -188,7 +199,8 @@ class LfpPictureFile(LfpGenericFile):
                         width=depth_width,
                         height=depth_height,
                         representation=accel_data['depthLut']['representation'],
-                        table=depth_table)
+                        table=depth_table,
+                        chunk=self.chunks[accel_data['depthLut']['imageRef']])
 
                 self.refocus_stack = RefocusStack(
                     default_lambda=accel_data['defaultLambda'],
@@ -203,6 +215,34 @@ class LfpPictureFile(LfpGenericFile):
         except KeyError:
             raise LfpPictureError("Not a valid LFP Picture file")
 
+    ################
+    # Exporting
+
+    def get_depth_lut_txt(self):
+        depth_lut = self.refocus_stack.depth_lut
+        txt = ""
+        for i in xrange(depth_lut.width):
+            for j in xrange(depth_lut.height):
+                txt += "%9f " % depth_lut.table[j][i]
+            txt += "\r\n"
+        return txt
+
+    def export(self):
+        self.export_meta()
+
+        if self.frame:
+            self.frame.metadata.export(self._export_path('frame_metadata', 'json'))
+            self.frame.image.export(self._export_path('frame', 'raw'))
+            self.frame.private_metadata.export(self._export_path('frame_private_metadata', 'json'))
+
+        if self.refocus_stack:
+            for idx, image in enumerate(self.refocus_stack.images):
+                image.chunk.export(self._export_path('focused_%02d' % idx,
+                    image.representation))
+            self.refocus_stack.depth_lut.chunk.export(self._export_path('depth_lut',
+                self.refocus_stack.depth_lut.representation))
+            with open(self._export_path('depth_lut', 'txt'), 'wb') as exp_file:
+                exp_file.write(self.get_depth_lut_txt())
 
 ################################
 # Storage file
@@ -222,7 +262,7 @@ class LfpStorageFile(LfpGenericFile):
         return "LfpStorageFile(%s, %s, %d chunks)" % (self.header, self.meta, len(self.chunks))
 
     ################
-    # Processing
+    # Loading
 
     def process(self):
         try:
@@ -231,4 +271,7 @@ class LfpStorageFile(LfpGenericFile):
                     for fj in files_list )
         except KeyError:
             raise LfpStorageError("Not a valid LFP Storage file")
+
+    ################
+    # Exporting
 

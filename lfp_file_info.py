@@ -21,13 +21,12 @@
 # Copyright (C) 2012  Behnam Esfahbod
 
 
-"""Show information about LFP (Light Field Photography) file
+"""Show information about LFP file
 """
 
 
 import os.path
 import sys
-import operator
 import json
 
 from lfp_reader import LfpGenericFile
@@ -53,7 +52,7 @@ if __name__=='__main__':
             print json.dumps(lfp.meta.content, indent=4)
             print
             print "Data Chunks: %d [" % len(lfp.chunks)
-            for sha1, chunk in sorted(lfp.chunks.iteritems(), key=operator.itemgetter(0)):
+            for sha1, chunk in lfp.chunks_sorted:
                 print "%12d\t%s" % (chunk.size, sha1)
             print "]"
 

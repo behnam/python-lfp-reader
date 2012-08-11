@@ -21,7 +21,7 @@
 # Copyright (C) 2012  Behnam Esfahbod
 
 
-"""Show information about LFP (Light Field Photography) Picture file
+"""Show information about LFP Picture file
 """
 
 

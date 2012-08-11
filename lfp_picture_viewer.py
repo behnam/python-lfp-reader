@@ -21,7 +21,7 @@
 # Copyright (C) 2012  Behnam Esfahbod
 
 
-"""View and refocus LFP (Light Field Photography) Picture file
+"""View and refocus LFP Picture file
 """
 
 
