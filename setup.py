@@ -24,7 +24,7 @@
 from distutils.core import setup
 
 
-setup(name="lfp-reader", version="1.3",
+setup(name="lfp-reader", version="1.4",
         description="LFP (Light Field Photography) File Reader",
         long_description=open('README.rst').read(),
 

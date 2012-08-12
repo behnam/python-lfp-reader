@@ -24,10 +24,14 @@
 """Read and process an LFP Picture or LFP Storage file
 """
 
+from __future__ import division
+
+import sys
 import os, os.path
+import math
+from struct import unpack
+from operator import itemgetter
 from collections import namedtuple
-import struct
-import operator
 
 import lfp_section
 
@@ -71,7 +75,7 @@ class LfpGenericFile:
 
     @property
     def chunks_sorted(self):
-        return sorted(self.chunks.iteritems(), key=operator.itemgetter(0))
+        return sorted(self.chunks.iteritems(), key=itemgetter(0))
 
     ################
     # Loading
@@ -108,13 +112,13 @@ class LfpGenericFile:
         self.export_chunks()
 
     def export_meta(self):
-        self.meta.export_data(self._export_path('lfp_meta', 'json'))
+        self.meta.export_data(self.export_path('lfp_meta', 'json'))
 
     def export_chunks(self):
         for sha1, chunk in self.chunks_sorted:
-            chunk.export_data(self._export_path(sha1[5:], 'data'))
+            chunk.export_data(self.export_path(sha1[5:], 'data'))
 
-    def _export_path(self, exp_name, exp_ext=None):
+    def export_path(self, exp_name, exp_ext=None):
         prefix, lfp_ext = os.path.splitext(self._file_path)
         if lfp_ext != '.lfp':
             prefix = self._file_path
@@ -123,8 +127,8 @@ class LfpGenericFile:
         else:
             return "%s__%s.%s" % (prefix, exp_name, exp_ext)
 
-    def _export_data(self, exp_name, exp_ext, exp_data):
-        with open(self._export_path(exp_name, exp_ext), 'wb') as exp_file:
+    def export_write(self, exp_name, exp_ext, exp_data):
+        with open(self.export_path(exp_name, exp_ext), 'wb') as exp_file:
             exp_file.write(exp_data)
 
 
@@ -203,7 +207,7 @@ class LfpPictureFile(LfpGenericFile):
                 depth_width  = accel_data['depthLut']['width']
                 depth_height = accel_data['depthLut']['height']
                 depth_data  = self.chunks[accel_data['depthLut']['imageRef']].data
-                depth_table = [[ struct.unpack("f",
+                depth_table = [[ unpack("f",
                     depth_data[ (j*depth_width + i) * 4 : (j*depth_width + i+1) * 4 ])[0]
                     for j in xrange(depth_height)] for i in xrange(depth_width)]
 
@@ -246,17 +250,38 @@ class LfpPictureFile(LfpGenericFile):
             self.export_refocus_stack()
 
     def export_frame(self):
-        self.frame.metadata.export_data(self._export_path('frame_metadata', 'json'))
-        self.frame.image.export_data(self._export_path('frame', 'raw'))
-        self.frame.private_metadata.export_data(self._export_path('frame_private_metadata', 'json'))
+        self.frame.metadata.export_data(self.export_path('frame_metadata', 'json'))
+        self.frame.image.export_data(self.export_path('frame', 'raw'))
+        self.frame.private_metadata.export_data(self.export_path('frame_private_metadata', 'json'))
 
     def export_refocus_stack(self):
         for idx, image in enumerate(self.refocus_stack.images):
-            image.chunk.export_data(self._export_path('focused_%02d' % idx,
+            image.chunk.export_data(self.export_path('focused_%02d' % idx,
                 image.representation))
-        self.refocus_stack.depth_lut.chunk.export_data(self._export_path('depth_lut',
+        self.refocus_stack.depth_lut.chunk.export_data(self.export_path('depth_lut',
             self.refocus_stack.depth_lut.representation))
-        self._export_data('depth_lut', 'txt', self.get_depth_lut_txt())
+        self.export_write('depth_lut', 'txt', self.get_depth_lut_txt())
+
+    ################
+    # Manipulation
+
+    def find_most_focused_f(self, fx=.5, fy=.5):
+        """Parameters `fx` and `fy` are floats in range [0, 1)
+        """
+        return self.find_most_focused(
+                int(math.floor(self.refocus_stack.depth_lut.width  * fx)),
+                int(math.floor(self.refocus_stack.depth_lut.height * fy)))
+
+    def find_most_focused(self, ti, tj):
+        """Parameters `ti` and `tj` are indices of the depth table
+        """
+        taget_lambda = self.refocus_stack.depth_lut.table[ti][tj]
+        most_focused, min_lambda_dist = None, sys.maxint
+        for image in self.refocus_stack.images:
+            lambda_dist = math.fabs(image.lambda_ - taget_lambda)
+            if lambda_dist < min_lambda_dist:
+                most_focused, min_lambda_dist = image, lambda_dist
+        return most_focused
 
 
 ################################
@@ -274,7 +299,7 @@ class LfpStorageFile(LfpGenericFile):
 
     @property
     def files_sorted(self):
-        return sorted(self.files.iteritems(), key=operator.itemgetter(0))
+        return sorted(self.files.iteritems(), key=itemgetter(0))
 
     ################
     # Internals
@@ -301,5 +326,5 @@ class LfpStorageFile(LfpGenericFile):
 
     def export_files(self):
         for path, chunk in self.files_sorted:
-            chunk.export_data(self._export_path(path[3:].replace('\\', '__')))
+            chunk.export_data(self.export_path(path[3:].replace('\\', '__')))
 

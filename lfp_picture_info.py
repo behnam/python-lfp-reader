@@ -63,13 +63,22 @@ if __name__=='__main__':
             print "\t%-20s\t%12d" % ("default_lambda:", lfp.refocus_stack.default_lambda)
             print "\t%-20s\t%12d" % ("default_width:", lfp.refocus_stack.default_width)
             print "\t%-20s\t%12d" % ("default_height:", lfp.refocus_stack.default_height)
+
+            print
+            print "\tAvailable Focus Depth:"
+            print "\t\t",
+            for image in lfp.refocus_stack.images:
+                print "%5.2f" % image.lambda_,
+            print
+
             print
             print "\tDepth Table:"
             for i in xrange(lfp.refocus_stack.depth_lut.width):
                 print "\t\t",
                 for j in xrange(lfp.refocus_stack.depth_lut.height):
-                    print "%2d" % lfp.refocus_stack.depth_lut.table[j][i],
+                    print "%5.2f" % lfp.refocus_stack.depth_lut.table[j][i],
                 print
+
         else:
             print "\tNone"
 

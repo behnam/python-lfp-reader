@@ -51,8 +51,18 @@ Picture Viewer
   *NOTE: This script requires Python Imaging Library (PIL) to run.*
 
 
-File Information Scripts
-------------------------
+All-Focused Picture
+-------------------
+
+**lfp_picture_all_focused.py**
+  Creates an all-focused image using a Processed LFP Picture file.::
+    ./lfp_picture_all_focused.py samples/IMG_0001-stk.lfp
+
+  *NOTE: This script requires Python Imaging Library (PIL) to run.*
+
+
+File Information
+----------------
 
 **lfp_file_info.py**
   Provides general information about any LFP file, including the metadata and

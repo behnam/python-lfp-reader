@@ -25,14 +25,16 @@
 """
 
 
+from __future__ import division
+
 import os.path
 import sys
-from StringIO import StringIO
+from cStringIO import StringIO
+
 import Tkinter
-from math import fabs
+import tkFileDialog
 
 import Image, ImageTk
-import tkFileDialog
 
 from lfp_reader import LfpPictureFile
 
@@ -41,11 +43,11 @@ class LfpPictureViewer():
     """View and refocues Processed LFP Picture files (*-stk.lfp)
     """
 
-    _init_size = (648, 648)
+    _active_size = (648, 648)
     _tkroot = None
     _lfp_path = None
     _lfp = None
-    _sha1 = None
+    _active_sha1 = None
     _images = None
     _depth_lut = None
 
@@ -56,47 +58,37 @@ class LfpPictureViewer():
             self._lfp_path = tkFileDialog.askopenfilename(defaultextension="lfp")
         self._tkroot.wm_title(os.path.basename(self._lfp_path))
         self._tkroot.protocol("WM_DELETE_WINDOW", self.quit)
-        self._tkroot.geometry("%dx%d" % self._init_size)
+        self._tkroot.geometry("%dx%d" % self._active_size)
         #self._tkroot.bind('<Configure>', self.resize)
 
         self._lfp = LfpPictureFile(self._lfp_path).load()
         try:
             self._depth_lut = self._lfp.refocus_stack.depth_lut
-            self._images = dict([
-                (i.chunk.sha1, Image.open(StringIO(i.chunk.data)))
-                for i in self._lfp.refocus_stack.images ])
+            self._images = dict( (i.chunk.sha1, Image.open(StringIO(i.chunk.data)))
+                for i in self._lfp.refocus_stack.images)
         except:
-            #self.quit()
             raise Exception("Not a Processed LFP Picture file")
 
-        self.pic = Tkinter.Label(self._tkroot)
-        self.pic.bind("<Button-1>", self.click)
-        self.pic.pack()
+        self._pic = Tkinter.Label(self._tkroot)
+        self._pic.bind("<Button-1>", self.click)
+        self._pic.pack()
 
-        self.refocus_image(self._depth_lut.width  / 2,
-                           self._depth_lut.height / 2)
+        self.focus_image()
 
         self._tkroot.mainloop()
 
-    def refocus_image(self, ti, tj):
-        lmbd = self._depth_lut.table[ti][tj]
-        sha1 = None
-        min_dist = sys.maxint
-        for rfimg in self._lfp.refocus_stack.images:
-            if fabs(rfimg.lambda_ - lmbd) > min_dist: continue
-            min_dist = fabs(rfimg.lambda_ - lmbd)
-            sha1 = rfimg.chunk.sha1
-        self._sha1 = sha1
-        self.draw_image(self._init_size)
+    def focus_image(self, x=.5, y=.5):
+        self._active_sha1 = self._lfp.find_most_focused_f(x, y).chunk.sha1
+        self.draw_image(self._active_size)
 
     def draw_image(self, size):
-        self.image = self._images[self._sha1].resize(size, Image.ANTIALIAS)
-        self.pimage = ImageTk.PhotoImage(self.image)
-        self.pic.configure(image=self.pimage)
+        self._active_image = self._images[self._active_sha1].resize(size, Image.ANTIALIAS)
+        self._pimage = ImageTk.PhotoImage(self._active_image)
+        self._pic.configure(image=self._pimage)
 
     def click(self, event):
-        self.refocus_image(self._depth_lut.width *event.x / self.image.size[0],
-                           self._depth_lut.height*event.y / self.image.size[1])
+        self.focus_image(event.x / self._active_size[0],
+                         event.y / self._active_size[1])
 
     def quit(self):
         self._tkroot.destroy()
