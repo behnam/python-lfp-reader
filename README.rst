@@ -48,7 +48,7 @@ Picture Viewer
   command-line.::
     ./lfp_picture_viewer.py samples/IMG_0001-stk.lfp
 
-  *NOTE: This script requires Python Imaging Library (PIL) to run.*
+  *NOTE: This script requires Python Imaging Library (`PIL` or its fork, `Pillow`) to run.*
 
 
 All-Focused Picture
@@ -58,7 +58,7 @@ All-Focused Picture
   Creates an all-focused image using a Processed LFP Picture file.::
     ./lfp_picture_all_focused.py samples/IMG_0001-stk.lfp
 
-  *NOTE: This script requires Python Imaging Library (PIL) to run.*
+  *NOTE: This script requires Python Imaging Library (`PIL` or its fork, `Pillow`) to run.*
 
 
 File Information

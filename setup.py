@@ -24,7 +24,7 @@
 from distutils.core import setup
 
 
-setup(name="lfp-reader", version="1.4",
+setup(name="lfp-reader", version="1.4.2",
         description="LFP (Light Field Photography) File Reader",
         long_description=open('README.rst').read(),
 
@@ -53,10 +53,14 @@ setup(name="lfp-reader", version="1.4",
             ],
 
         scripts=[
+            'lfp_file_exporter.py',
             'lfp_file_info.py',
+            'lfp_picture_all_focus.py',
+            'lfp_picture_exporter.py',
             'lfp_picture_info.py',
             'lfp_picture_viewer.py',
-            'lfp_storage_extractor.py',
+            'lfp_storage_exporter.py',
+            'lfp_storage_info.py',
             ],
 
         data_files=[
@@ -65,7 +69,7 @@ setup(name="lfp-reader", version="1.4",
             ],
 
         install_requires=[
-            "PIL",
+            "Pillow",
             ],
         )
 
