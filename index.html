@@ -69,53 +69,92 @@ pathname, i.e. <code>C:\CALIB\WIFI_MAC_ADDR.TXT</code>.</p>
 
 <h2>Picture Viewer</h2>
 
-<p><strong>lfp_picture_viewer.py</strong>
-  A small application to view and <em>refocus</em> LFP Picture files.
+<p><strong>lfp_picture_viewer.py</strong></p>
+
+<p>A small application to view and <em>refocus</em> LFP Picture files.
   You may provide the name of the Processed LFP Picture file in the
-  command-line.::
-    ./lfp_picture_viewer.py samples/IMG_0001-stk.lfp</p>
+  command-line.::</p>
 
-<p><em>NOTE: This script requires Python Imaging Library (PIL) to run.</em></p>
+<pre><code>./lfp_picture_viewer.py samples/IMG_0001-stk.lfp
+</code></pre>
 
-<h2>File Information Scripts</h2>
+<p><em>NOTE: This script requires Python Imaging Library (<code>PIL</code> or its fork, <code>Pillow</code>) to run.</em></p>
 
-<p><strong>lfp_file_info.py</strong>
-  Provides general information about any LFP file, including the metadata and
-  the data chunks (data size and their sha1 ids).::
-    ./lfp_file_info.py samples/IMG_0003.lfp
-  You may also pass the sha1 id to the command line to get the content of the
-  data chunk in standard output.::
-    ./lfp_file_info.py samples/IMG_0001.lfp sha1-992ae2d9f755077e50de7b9b1357e873885b3382</p>
+<h2>All-Focused Picture</h2>
 
-<p><strong>lfp_picture_info.py</strong>
-  Provides detailed information about a picture file.::
-    ./lfp_picture_info.py samples/IMG_0003.lfp
-  The <em>Frame</em> section provides the information about the RAW picture data, and
+<p><strong>lfp_picture_all_focused.py</strong></p>
+
+<p>Creates an all-focused image using a Processed LFP Picture file.::</p>
+
+<pre><code>./lfp_picture_all_focused.py samples/IMG_0001-stk.lfp
+</code></pre>
+
+<p><em>NOTE: This script requires Python Imaging Library (<code>PIL</code> or its fork, <code>Pillow</code>) to run.</em></p>
+
+<h2>File Information</h2>
+
+<p><strong>lfp_file_info.py</strong></p>
+
+<p>Provides general information about any LFP file, including the metadata and
+  the data chunks (data size and their sha1 ids).::</p>
+
+<pre><code>./lfp_file_info.py samples/IMG_0003.lfp
+</code></pre>
+
+<p>You may also pass the sha1 id to the command line to get the content of the
+  data chunk in standard output.::</p>
+
+<pre><code>./lfp_file_info.py samples/IMG_0001.lfp sha1-992ae2d9f755077e50de7b9b1357e873885b3382
+</code></pre>
+
+<p><strong>lfp_picture_info.py</strong></p>
+
+<p>Provides detailed information about a picture file.::</p>
+
+<pre><code>./lfp_picture_info.py samples/IMG_0003.lfp
+</code></pre>
+
+<p>The <em>Frame</em> section provides the information about the RAW picture data, and
   the <em>RefocusStack</em> section provides the information about the processed image
   data, including the number of JPEG files and the size of the depth table.
   You will also get a preview of the depth table.</p>
 
-<p><strong>lfp_storage_info.py</strong>
-  Providing a list of embedded files in an LFP Storage file.::
-    ./lfp_storage_extractor.py data.C.0</p>
+<p><strong>lfp_storage_info.py</strong></p>
+
+<p>Providing a list of embedded files in an LFP Storage file.::</p>
+
+<pre><code>./lfp_storage_extractor.py data.C.0
+</code></pre>
 
 <h2>Exporters</h2>
 
-<p><strong>lfp_file_exporter.py</strong>
-  Exports metadata and data sections of a generic file into separate files.::
-    ./lfp_file_exporter.py samples/IMG_0001.lfp</p>
+<p><strong>lfp_file_exporter.py</strong></p>
 
-<p><strong>lfp_picture_exporter.py</strong>
-  Exports raw and processed data of a picture file into separate files.::
-    ./lfp_picture_exporter.py samples/IMG_0001.lfp
-    ./lfp_picture_exporter.py samples/IMG_0001-stk.lfp</p>
+<p>Exports metadata and data sections of a generic file into separate files.::</p>
 
-<p><strong>lfp_storage_exporter.py</strong>
-  Exports all the embedded files of a storage file into separate files.::
-    ./lfp_storage_exporter.py data.C.0
-  If you give the script a path, you get the content of that specific file
-  in the standard output.::
-    ./lfp_storage_exporter.py data.C.0 'C:\CALIB\WIFI_MAC_ADDR.TXT'</p>
+<pre><code>./lfp_file_exporter.py samples/IMG_0001.lfp
+</code></pre>
+
+<p><strong>lfp_picture_exporter.py</strong></p>
+
+<p>Exports raw and processed data of a picture file into separate files.::</p>
+
+<pre><code>./lfp_picture_exporter.py samples/IMG_0001.lfp
+./lfp_picture_exporter.py samples/IMG_0001-stk.lfp
+</code></pre>
+
+<p><strong>lfp_storage_exporter.py</strong></p>
+
+<p>Exports all the embedded files of a storage file into separate files.::</p>
+
+<pre><code>./lfp_storage_exporter.py data.C.0
+</code></pre>
+
+<p>If you give the script a path, you get the content of that specific file
+  in the standard output.::</p>
+
+<pre><code>./lfp_storage_exporter.py data.C.0 'C:\CALIB\WIFI_MAC_ADDR.TXT'
+</code></pre>
 
 <h1>LFP Reader Library</h1>
 
