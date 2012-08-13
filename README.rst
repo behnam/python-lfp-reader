@@ -2,7 +2,7 @@
 LFP (Light Field Photography) File Reader
 =========================================
 
-<https://behnam.github.com/python-lfp-reader>
+<http://behnam.github.com/python-lfp-reader>
 
 Provides a Python library and command-line scripts to read Lytro LFP files, and
 a simple viewer for Lytro LFP Picture files.
@@ -43,9 +43,11 @@ Picture Viewer
 --------------
 
 **lfp_picture_viewer.py**
+
   A small application to view and *refocus* LFP Picture files.
   You may provide the name of the Processed LFP Picture file in the
   command-line.::
+
     ./lfp_picture_viewer.py samples/IMG_0001-stk.lfp
 
   *NOTE: This script requires Python Imaging Library (`PIL` or its fork, `Pillow`) to run.*
@@ -55,7 +57,9 @@ All-Focused Picture
 -------------------
 
 **lfp_picture_all_focused.py**
+
   Creates an all-focused image using a Processed LFP Picture file.::
+
     ./lfp_picture_all_focused.py samples/IMG_0001-stk.lfp
 
   *NOTE: This script requires Python Imaging Library (`PIL` or its fork, `Pillow`) to run.*
@@ -65,48 +69,65 @@ File Information
 ----------------
 
 **lfp_file_info.py**
+
   Provides general information about any LFP file, including the metadata and
   the data chunks (data size and their sha1 ids).::
+
     ./lfp_file_info.py samples/IMG_0003.lfp
+
   You may also pass the sha1 id to the command line to get the content of the
   data chunk in standard output.::
+
     ./lfp_file_info.py samples/IMG_0001.lfp sha1-992ae2d9f755077e50de7b9b1357e873885b3382
 
 **lfp_picture_info.py**
+
   Provides detailed information about a picture file.::
+
     ./lfp_picture_info.py samples/IMG_0003.lfp
+
   The *Frame* section provides the information about the RAW picture data, and
   the *RefocusStack* section provides the information about the processed image
   data, including the number of JPEG files and the size of the depth table.
   You will also get a preview of the depth table.
 
 **lfp_storage_info.py**
+
   Providing a list of embedded files in an LFP Storage file.::
+
     ./lfp_storage_extractor.py data.C.0
 
 
 Exporters
-----------------
+---------
 
 **lfp_file_exporter.py**
+
   Exports metadata and data sections of a generic file into separate files.::
+
     ./lfp_file_exporter.py samples/IMG_0001.lfp
 
 **lfp_picture_exporter.py**
+
   Exports raw and processed data of a picture file into separate files.::
+
     ./lfp_picture_exporter.py samples/IMG_0001.lfp
     ./lfp_picture_exporter.py samples/IMG_0001-stk.lfp
 
 **lfp_storage_exporter.py**
+
   Exports all the embedded files of a storage file into separate files.::
+
     ./lfp_storage_exporter.py data.C.0
+
   If you give the script a path, you get the content of that specific file
   in the standard output.::
+
     ./lfp_storage_exporter.py data.C.0 'C:\CALIB\WIFI_MAC_ADDR.TXT'
 
 
 LFP Reader Library
-=======================
+==================
 
 **LFP Reader library (``lfp_reader``)** provides direct reading access to all
 data and metadata in any LFP files. For the processed LFP Picture files, you
