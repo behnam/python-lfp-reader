@@ -32,20 +32,19 @@ from lfp_reader import LfpGenericFile
 
 
 def usage(errcode=0, of=sys.stderr):
-    print ("Usage: %s file.lfp" %
+    print ("Usage: %s file.lfp [file-2.lfp ...]" %
             os.path.basename(sys.argv[0]))
     sys.exit(errcode)
 
 if __name__=='__main__':
-    if len(sys.argv) < 2 or len(sys.argv) > 2:
+    if len(sys.argv) < 2:
         usage()
-    lfp_path = sys.argv[1]
 
-    try:
-        lfp = LfpGenericFile(lfp_path).load()
-        lfp.export()
-
-    except Exception as err:
-        print >>sys.stderr, "Error:", err
-        exit(1)
+    for lfp_path in sys.argv[1:]:
+        try:
+            lfp = LfpGenericFile(lfp_path).load()
+            lfp.export()
+        except Exception as err:
+            print >>sys.stderr, "Error:", err
+            exit(1)
 

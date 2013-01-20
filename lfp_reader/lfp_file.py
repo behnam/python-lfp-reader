@@ -47,24 +47,20 @@ class LfpGenericFile:
     """Generic class for any LFP file
     """
 
-    header = None
-    meta = None
-    chunks = {}
-
-    _file_path = None
-    _file_size = None
-    _file = None
-
     ################
     # Internals
 
     def __init__(self, file_path):
+        self.header = None
+        self.meta = None
+        self.chunks = {}
         self._file_path = file_path
         self._file_size = os.stat(file_path).st_size
         self._file = open(self._file_path, 'rb')
 
     def __del__(self):
-        self._file.close()
+        if self._file:
+            self._file.close()
 
     def __repr__(self):
         return "LfpGenericFile(%s, %s, %d chunks)" % (self.header, self.meta, len(self.chunks))
@@ -112,13 +108,13 @@ class LfpGenericFile:
         self.export_chunks()
 
     def export_meta(self):
-        self.meta.export_data(self.export_path('lfp_meta', 'json'))
+        self.meta.export_data(self.get_export_path('lfp_meta', 'json'))
 
     def export_chunks(self):
         for sha1, chunk in self.chunks_sorted:
-            chunk.export_data(self.export_path(sha1[5:], 'data'))
+            chunk.export_data(self.get_export_path(sha1[5:], 'data'))
 
-    def export_path(self, exp_name, exp_ext=None):
+    def get_export_path(self, exp_name, exp_ext=None):
         prefix, lfp_ext = os.path.splitext(self._file_path)
         if lfp_ext != '.lfp':
             prefix = self._file_path
@@ -128,7 +124,9 @@ class LfpGenericFile:
             return "%s__%s.%s" % (prefix, exp_name, exp_ext)
 
     def export_write(self, exp_name, exp_ext, exp_data):
-        with open(self.export_path(exp_name, exp_ext), 'wb') as exp_file:
+        exp_path = self.get_export_path(exp_name, exp_ext)
+        with open(exp_path, 'wb') as exp_file:
+            print "Create file %s" % exp_path
             exp_file.write(exp_data)
 
 
@@ -144,33 +142,38 @@ def _lfp_picture_data_class(cls_name, *args):
     return namedtuple(cls_name, *args)
 
 Frame = _lfp_picture_data_class('Frame',
-        ('metadata image private_metadata'))
+        'metadata image private_metadata')
 
 RefocusStack = _lfp_picture_data_class('RefocusStack',
-        ('images depth_lut default_lambda default_width default_height'))
+        'images depth_lut default_lambda default_width default_height')
 
 RefocusImage = _lfp_picture_data_class('RefocusImage',
-        ('lambda_ width height representation chunk'))
+        'lambda_ width height representation chunk')
 
 DepthLut = _lfp_picture_data_class('DepthLut',
-        ('width height representation table chunk'))
+        'width height representation table chunk')
 
 
 class LfpPictureFile(LfpGenericFile):
     """Load an LFP Picture file and read the data chunks on-demand
     """
 
-    frame = None
-    refocus_stack = None
-
     ################
     # Internals
 
+    def __init__(self, file_path):
+        LfpGenericFile.__init__(self, file_path)
+        self.frame = None
+        self.refocus_stack = None
+
     def __repr__(self):
         version = self.meta.content['version']
-        image_size = self.frame.image.size
-        return ("LfpPictureFile(version=%d.%d, image_size=%d)" %
-                (version['major'], version['minor'], image_size))
+        image_size = self.frame.image.size if self.frame else 'N/A'
+        return ("LfpPictureFile(version=%s.%s, provisionalDate=%s, frame=%s)" % (
+            version['major'], version['minor'],
+            version['provisionalDate'],
+            'True' if self.frame else 'False'
+            ))
 
     ################
     # Loading
@@ -178,61 +181,103 @@ class LfpPictureFile(LfpGenericFile):
     def process(self):
         try:
             picture_data = self.meta.content['picture']
+            frame_data = picture_data['frameArray'][0]['frame']
 
             # Data for raw picture file
-            try:
-                frame_data = picture_data['frameArray'][0]['frame']
+            if (    frame_data['metadataRef']        in self.chunks and
+                    frame_data['imageRef']           in self.chunks and
+                    frame_data['privateMetadataRef'] in self.chunks ):
                 self.frame = Frame(
-                        metadata=self.chunks[frame_data['metadataRef']],
-                        image=self.chunks[frame_data['imageRef']],
+                        metadata=        self.chunks[frame_data['metadataRef']],
+                        image=           self.chunks[frame_data['imageRef']],
                         private_metadata=self.chunks[frame_data['privateMetadataRef']])
 
-            except (KeyError, IndexError):
-                pass
+            # Data for processed picture file
+            if picture_data['accelerationArray']:
+                for accel_data in picture_data['accelerationArray']:
+                    accel_type    = accel_data["type"]
+                    accel_content = accel_data['vendorContent']
 
-            # Data for refocus-stack picture file
-            try:
-                accel_data = picture_data['accelerationArray'][0]['vendorContent']
-                default_dimensions = accel_data['displayParameters']['displayDimensions']
+                    if accel_type == 'com.lytro.acceleration.refocusStack':
 
-                images = [ RefocusImage(
-                    lambda_=img['lambda'],
-                    width=img['width'],
-                    height=img['height'],
-                    representation=img['representation'],
-                    chunk=self.chunks[img['imageRef']])
-                    for img in accel_data['imageArray']
-                    ]
+                        if 'imageArray' in accel_content:
+                            # JPEG-based refocus stack
+                            images = [
+                                    RefocusImage(
+                                        lambda_=img['lambda'],
+                                        width=img['width'],
+                                        height=img['height'],
+                                        representation=img['representation'],
+                                        chunk=self.chunks[img['imageRef']])
+                                    for img in accel_content['imageArray'] ]
 
-                depth_width  = accel_data['depthLut']['width']
-                depth_height = accel_data['depthLut']['height']
-                depth_data  = self.chunks[accel_data['depthLut']['imageRef']].data
-                depth_table = [[ unpack("f",
-                    depth_data[ (j*depth_width + i) * 4 : (j*depth_width + i+1) * 4 ])[0]
-                    for j in xrange(depth_height)] for i in xrange(depth_width)]
+                        elif 'blockOfImages' in accel_content:
+                            # H264-based refocus stack
+                            #XXX process refocusStack
+                            images = []
 
-                depth_lut = DepthLut(
-                        width=depth_width,
-                        height=depth_height,
-                        representation=accel_data['depthLut']['representation'],
-                        table=depth_table,
-                        chunk=self.chunks[accel_data['depthLut']['imageRef']])
+                        else:
+                            raise KeyError()
 
-                self.refocus_stack = RefocusStack(
-                    default_lambda=accel_data['defaultLambda'],
-                    default_width=default_dimensions['value']['width'],
-                    default_height=default_dimensions['value']['height'],
-                    images=images,
-                    depth_lut=depth_lut)
+                        # Depth Look-up Table
+                        depth_width  = accel_content['depthLut']['width']
+                        depth_height = accel_content['depthLut']['height']
+                        depth_data  = self.chunks[accel_content['depthLut']['imageRef']].data
+                        depth_table = [ [
+                            unpack("f", depth_data[ (j*depth_width + i) * 4 : (j*depth_width + i+1) * 4 ])[0]
+                            for j in xrange(depth_height) ]
+                            for i in xrange(depth_width) ]
 
-            except (KeyError, IndexError):
-                pass
+                        depth_lut = DepthLut(
+                                width=depth_width,
+                                height=depth_height,
+                                representation=accel_content['depthLut']['representation'],
+                                table=depth_table,
+                                chunk=self.chunks[accel_content['depthLut']['imageRef']])
+
+                        default_dimensions = accel_content['displayParameters']['displayDimensions']['value']
+                        self.refocus_stack = RefocusStack(
+                            default_lambda=accel_content['defaultLambda'],
+                            default_width=default_dimensions['width'],
+                            default_height=default_dimensions['height'],
+                            images=images,
+                            depth_lut=depth_lut)
+
+                    elif accel_type == 'com.lytro.acceleration.edofParallax':
+                        # H264-based parallax
+                        #XXX process edofParallax
+                        pass
+
+                    elif accel_type == 'com.lytro.acceleration.depthMap':
+                        # Depth-Map
+                        #XXX process depthMap
+                        pass
 
         except KeyError:
+            raise
             raise LfpPictureError("Not a valid LFP Picture file")
 
     ################
     # Exporting
+
+    def export(self):
+        if self.frame:
+            self.export_frame()
+        if self.refocus_stack:
+            self.export_refocus_stack()
+
+    def export_frame(self):
+        self.frame.metadata.export_data(self.get_export_path('frame_metadata', 'json'))
+        self.frame.image.export_data(self.get_export_path('frame', 'raw'))
+        self.frame.private_metadata.export_data(self.get_export_path('frame_private_metadata', 'json'))
+
+    def export_refocus_stack(self):
+        for idx, image in enumerate(self.refocus_stack.images):
+            image.chunk.export_data(self.get_export_path('image_%02d' % idx,
+                image.representation))
+        self.refocus_stack.depth_lut.chunk.export_data(self.get_export_path('depth_lut',
+            self.refocus_stack.depth_lut.representation))
+        self.export_write('depth_lut', 'txt', self.get_depth_lut_txt())
 
     def get_depth_lut_txt(self):
         depth_lut = self.refocus_stack.depth_lut
@@ -242,25 +287,6 @@ class LfpPictureFile(LfpGenericFile):
                 txt += "%9f " % depth_lut.table[j][i]
             txt += "\r\n"
         return txt
-
-    def export(self):
-        if self.frame:
-            self.export_frame()
-        if self.refocus_stack:
-            self.export_refocus_stack()
-
-    def export_frame(self):
-        self.frame.metadata.export_data(self.export_path('frame_metadata', 'json'))
-        self.frame.image.export_data(self.export_path('frame', 'raw'))
-        self.frame.private_metadata.export_data(self.export_path('frame_private_metadata', 'json'))
-
-    def export_refocus_stack(self):
-        for idx, image in enumerate(self.refocus_stack.images):
-            image.chunk.export_data(self.export_path('focused_%02d' % idx,
-                image.representation))
-        self.refocus_stack.depth_lut.chunk.export_data(self.export_path('depth_lut',
-            self.refocus_stack.depth_lut.representation))
-        self.export_write('depth_lut', 'txt', self.get_depth_lut_txt())
 
     ################
     # Manipulation
@@ -326,5 +352,5 @@ class LfpStorageFile(LfpGenericFile):
 
     def export_files(self):
         for path, chunk in self.files_sorted:
-            chunk.export_data(self.export_path(path[3:].replace('\\', '__')))
+            chunk.export_data(self.get_export_path(path[3:].replace('\\', '__')))
 
