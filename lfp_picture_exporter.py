@@ -31,27 +31,30 @@ import sys
 from lfp_reader import LfpPictureFile
 
 
-def usage(errcode=0, of=sys.stderr):
-    print ("Usage: %s picture-file.lfp [picture-file-2.lfp ...]" %
-            os.path.basename(sys.argv[0]))
-    sys.exit(errcode)
-
-if __name__=='__main__':
-    if len(sys.argv) < 2:
-        usage()
-
+def main(lfp_paths):
     first = True
-    for lfp_path in sys.argv[1:]:
+    for lfp_path in lfp_paths:
         if not first: print
         first = False
 
-        try:
-            print "Exporting image parts from %s" % lfp_path
-            lfp = LfpPictureFile(lfp_path).load()
-            lfp.export()
+        print lfp_path
+        lfp = LfpPictureFile(lfp_path).load()
+        lfp.export()
 
-        except Exception as err:
-            raise
-            print >>sys.stderr, "Error:", err
-            exit(1)
+
+def usage(errcode=0, of=sys.stderr):
+    print >>of, ("Usage: %s picture.lfp [picture-2.lfp ...]" %
+            os.path.basename(sys.argv[0]))
+    sys.exit(errcode)
+
+
+if __name__=='__main__':
+    if len(sys.argv) < 2:
+        usage(1)
+    try:
+        main(sys.argv[1:])
+    except Exception as err:
+        print >>sys.stderr, "Error:", err
+        if sys.platform == 'win32': raw_input()
+        exit(1)
 

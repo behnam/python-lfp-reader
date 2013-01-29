@@ -21,7 +21,7 @@
 # Copyright (C) 2012  Behnam Esfahbod
 
 
-"""Read and process an LFP Picture or LFP Storage file
+"""Read and process LFP Picture and Storage files
 """
 
 from __future__ import division
@@ -59,7 +59,7 @@ class LfpGenericFile:
         self._file = open(self._file_path, 'rb')
 
     def __del__(self):
-        if self._file:
+        if hasattr(self, '_file') and self._file:
             self._file.close()
 
     def __repr__(self):
@@ -213,7 +213,7 @@ class LfpPictureFile(LfpGenericFile):
 
                         elif 'blockOfImages' in accel_content:
                             # H264-based refocus stack
-                            #XXX process refocusStack
+                            #TODO process refocusStack
                             images = []
 
                         else:
@@ -245,12 +245,12 @@ class LfpPictureFile(LfpGenericFile):
 
                     elif accel_type == 'com.lytro.acceleration.edofParallax':
                         # H264-based parallax
-                        #XXX process edofParallax
+                        #TODO process edofParallax
                         pass
 
                     elif accel_type == 'com.lytro.acceleration.depthMap':
                         # Depth-Map
-                        #XXX process depthMap
+                        #TODO process depthMap
                         pass
 
         except KeyError:

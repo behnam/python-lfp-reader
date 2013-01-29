@@ -30,59 +30,63 @@ import sys
 
 from lfp_reader import LfpPictureFile
 
+def print_lfp_picture_info(lfp_path):
+    print lfp_path
+
+    lfp = LfpPictureFile(lfp_path).load()
+
+    print "    Frame:"
+    if lfp.frame:
+        print "\t%-20s\t%12d" % ("metadata:", lfp.frame.metadata.size)
+        print "\t%-20s\t%12d" % ("image:", lfp.frame.image.size)
+        print "\t%-20s\t%12d" % ("private_metadata:", lfp.frame.private_metadata.size)
+    else:
+        print "\tNone"
+
+    print "    Refocus-Stack:"
+    if lfp.refocus_stack:
+        print "\t%-20s\t%12d" % ("images:", len(lfp.refocus_stack.images))
+        print "\t%-20s\t%12s" % ("depth_lut:", "%dx%d" %
+                (lfp.refocus_stack.depth_lut.width, lfp.refocus_stack.depth_lut.height))
+        print "\t%-20s\t%12d" % ("default_lambda:", lfp.refocus_stack.default_lambda)
+        print "\t%-20s\t%12d" % ("default_width:", lfp.refocus_stack.default_width)
+        print "\t%-20s\t%12d" % ("default_height:", lfp.refocus_stack.default_height)
+        print "\tAvailable Focus Depth:"
+        print "\t\t",
+        for image in lfp.refocus_stack.images:
+            print "%5.2f" % image.lambda_,
+        '''TODO Depth Table is too big in new files to be shown as text
+        print "\tDepth Table:"
+        for i in xrange(lfp.refocus_stack.depth_lut.width):
+            print "\t\t",
+            for j in xrange(lfp.refocus_stack.depth_lut.height):
+                print "%5.2f" % lfp.refocus_stack.depth_lut.table[j][i],
+        '''
+    else:
+        print "\tNone"
+
+
+def main(lfp_paths):
+    first = True
+    for lfp_path in lfp_paths:
+        if not first: print
+        first = False
+        print_lfp_picture_info(lfp_path)
+
 
 def usage(errcode=0, of=sys.stderr):
-    print ("Usage: %s picture-file.lfp" %
+    print >>of, ("Usage: %s picture.lfp [picture-2.lfp ...]" %
             os.path.basename(sys.argv[0]))
     sys.exit(errcode)
 
+
 if __name__=='__main__':
-    if len(sys.argv) < 2 or len(sys.argv) > 2:
-        usage()
-    lfp_path = sys.argv[1]
-
-
+    if len(sys.argv) < 2:
+        usage(1)
     try:
-        lfp = LfpPictureFile(lfp_path).load()
-
-        print
-        print "Frame:"
-        if lfp.frame:
-            print "\t%-20s\t%12d" % ("metadata:", lfp.frame.metadata.size)
-            print "\t%-20s\t%12d" % ("image:", lfp.frame.image.size)
-            print "\t%-20s\t%12d" % ("private_metadata:", lfp.frame.private_metadata.size)
-        else:
-            print "\tNone"
-
-        print
-        print "Refocus-Stack:"
-        if lfp.refocus_stack:
-            print "\t%-20s\t%12d" % ("images:", len(lfp.refocus_stack.images))
-            print "\t%-20s\t%12s" % ("depth_lut:", "%dx%d" %
-                    (lfp.refocus_stack.depth_lut.width, lfp.refocus_stack.depth_lut.height))
-            print "\t%-20s\t%12d" % ("default_lambda:", lfp.refocus_stack.default_lambda)
-            print "\t%-20s\t%12d" % ("default_width:", lfp.refocus_stack.default_width)
-            print "\t%-20s\t%12d" % ("default_height:", lfp.refocus_stack.default_height)
-
-            print
-            print "\tAvailable Focus Depth:"
-            print "\t\t",
-            for image in lfp.refocus_stack.images:
-                print "%5.2f" % image.lambda_,
-            print
-
-            print
-            print "\tDepth Table:"
-            for i in xrange(lfp.refocus_stack.depth_lut.width):
-                print "\t\t",
-                for j in xrange(lfp.refocus_stack.depth_lut.height):
-                    print "%5.2f" % lfp.refocus_stack.depth_lut.table[j][i],
-                print
-
-        else:
-            print "\tNone"
-
+        main(sys.argv[1:])
     except Exception as err:
         print >>sys.stderr, "Error:", err
+        if sys.platform == 'win32': raw_input()
         exit(1)
 

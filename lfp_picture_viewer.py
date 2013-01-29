@@ -43,15 +43,9 @@ class LfpPictureViewer():
     """View and refocues Processed LFP Picture files (*-stk.lfp)
     """
 
-    _active_size = (648, 648)
-    _tkroot = None
-    _lfp_path = None
-    _lfp = None
-    _active_sha1 = None
-    _images = None
-    _depth_lut = None
+    def __init__(self, lfp_path=None, size=(648, 648)):
+        self._active_size = size
 
-    def __init__(self, lfp_path=None):
         self._tkroot = Tkinter.Tk()
         self._lfp_path = lfp_path
         if lfp_path is None:
@@ -67,7 +61,9 @@ class LfpPictureViewer():
             self._images = dict( (i.chunk.sha1, Image.open(StringIO(i.chunk.data)))
                 for i in self._lfp.refocus_stack.images)
         except:
-            raise Exception("Not a Processed LFP Picture file")
+            raise Exception("%s: Not a Processed LFP Picture file" % lfp_path)
+        if len(self._images) == 0:
+            raise Exception("%s: LFP Picture file does not contain JPEG-based refocused stack" % lfp_path)
 
         self._pic = Tkinter.Label(self._tkroot)
         self._pic.bind("<Button-1>", self.click)
@@ -95,25 +91,27 @@ class LfpPictureViewer():
         self._tkroot.quit()
 
 
+def main(lfp_paths):
+    if len(lfp_paths) > 0:
+        for lfp_path in lfp_paths:
+            LfpPictureViewer(lfp_path)
+    else:
+        LfpPictureViewer()
+
+
 def usage(errcode=0, of=sys.stderr):
-    print >>of, ("Usage: %s picture-stk.lfp" %
+    print >>of, ("Usage: %s picture-stk.lfp [picture-stk-2.lfp ...]" %
             os.path.basename(sys.argv[0]))
     sys.exit(errcode)
 
 
-def main(args):
-    if len(args) < 1 or len(args) > 2:
-        usage(1)
-    lfp_path = args[1] if len(args) > 1 else None
-
-    LfpPictureViewer(lfp_path)
-
 if __name__=='__main__':
+    if len(sys.argv) < 1:
+        usage(1)
     try:
-        main(sys.argv)
+        main(sys.argv[1:])
     except Exception as err:
         print >>sys.stderr, "Error:", err
-        if sys.platform == 'win32':
-            raw_input()
+        if sys.platform == 'win32': raw_input()
         exit(1)
 
