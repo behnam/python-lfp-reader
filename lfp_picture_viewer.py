@@ -34,9 +34,12 @@ from cStringIO import StringIO
 import Tkinter
 import tkFileDialog
 
-import Image, ImageTk
+try:
+    import Image, ImageTk
+except ImportError:
+    pass
 
-from lfp_reader import LfpPictureFile
+from lfp_reader import LfpPictureFile, LfpPictureError
 
 
 class LfpPictureViewer():
@@ -56,14 +59,8 @@ class LfpPictureViewer():
         #self._tkroot.bind('<Configure>', self.resize)
 
         self._lfp = LfpPictureFile(self._lfp_path).load()
-        try:
-            self._depth_lut = self._lfp.refocus_stack.depth_lut
-            self._images = dict( (i.chunk.sha1, Image.open(StringIO(i.chunk.data)))
-                for i in self._lfp.refocus_stack.images)
-        except:
-            raise Exception("%s: Not a Processed LFP Picture file" % lfp_path)
-        if len(self._images) == 0:
-            raise Exception("%s: LFP Picture file does not contain JPEG-based refocused stack" % lfp_path)
+        self._depth_lut = self._lfp.get_refocus_stack().depth_lut
+        self._pil_images = self._lfp.get_pil_images()
 
         self._pic = Tkinter.Label(self._tkroot)
         self._pic.bind("<Button-1>", self.click)
@@ -78,7 +75,8 @@ class LfpPictureViewer():
         self.draw_image(self._active_size)
 
     def draw_image(self, size):
-        self._active_image = self._images[self._active_sha1].resize(size, Image.ANTIALIAS)
+        #self._active_image = self._pil_images[self._active_sha1].resize(size, Image.ANTIALIAS)
+        self._active_image = self._pil_images[self._active_sha1].resize(size, Image.ANTIALIAS)
         self._pimage = ImageTk.PhotoImage(self._active_image)
         self._pic.configure(image=self._pimage)
 

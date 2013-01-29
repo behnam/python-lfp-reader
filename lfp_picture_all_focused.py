@@ -35,11 +35,11 @@ def main(lfp_paths):
     for idx, lfp_path in enumerate(lfp_paths):
         if idx > 0: print
         print "LFP Picture file: %s" % lfp_path
-        LfpPictureFile(lfp_path).load().print_info()
+        LfpPictureFile(lfp_path).load().export_all_focused()
 
 
 def usage(errcode=0, of=sys.stderr):
-    print >>of, ("Usage: %s picture.lfp [picture-2.lfp ...]" %
+    print >>of, ("Usage: %s picture-stk.lfp [picture-2-stk.lfp ...]" %
             os.path.basename(sys.argv[0]))
     sys.exit(errcode)
 

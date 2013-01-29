@@ -55,7 +55,7 @@ setup(name="lfp-reader", version="1.4.4",
         scripts=[
             'lfp_file_exporter.py',
             'lfp_file_info.py',
-            'lfp_picture_all_focus.py',
+            'lfp_picture_all_focused.py',
             'lfp_picture_exporter.py',
             'lfp_picture_info.py',
             'lfp_picture_viewer.py',
