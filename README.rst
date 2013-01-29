@@ -167,5 +167,5 @@ LYTRO, INC. <http://www.lytro.com/>
 Some of this work is based on Nirav Patel's ``lfptools`` project and his
 analysis on LFP file format.  <https://github.com/nrpatel/lfptools>
 
-Copyright (C) 2012 Behnam Esfahbod. <http://behnam.es/>
+Copyright (C) 2012-2013 Behnam Esfahbod. <http://behnam.es/>
 

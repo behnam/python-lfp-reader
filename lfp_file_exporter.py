@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2012  Behnam Esfahbod
+# Copyright (C) 2012-2013  Behnam Esfahbod
 
 
 """Export LFP file into separate data files

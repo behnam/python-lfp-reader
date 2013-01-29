@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2012  Behnam Esfahbod
+# Copyright (C) 2012-2013  Behnam Esfahbod
 
 
 """
@@ -62,7 +62,7 @@ LYTRO, INC. <http://www.lytro.com/>
 Some of this work is based on Nirav Patel's ``lfptools`` project and his
 analysis on LFP file format.  <https://github.com/nrpatel/lfptools>
 
-Copyright (C) 2012 Behnam Esfahbod.
+Copyright (C) 2012-2013 Behnam Esfahbod.
 
 """
 
@@ -76,7 +76,7 @@ from lfp_file import (
 
 __version__     = "1.4"
 __author__      = "Behnam Esfahbod"
-__copyright__   = "Copyright 2012, Behnam Esfahbod"
+__copyright__   = "Copyright 2012-2013, Behnam Esfahbod"
 __credits__     = ["Behnam Esfahbod"]
 __license__     = "GPLv3+"
 __maintainer__  = "Behnam Esfahbod"
