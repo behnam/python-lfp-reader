@@ -93,7 +93,9 @@ class LfpPictureViewer():
 
 def main(lfp_paths):
     if len(lfp_paths) > 0:
-        for lfp_path in lfp_paths:
+        for idx, lfp_path in enumerate(lfp_paths):
+            if idx > 0: print
+            print "LFP Picture file: %s" % lfp_path
             LfpPictureViewer(lfp_path)
     else:
         LfpPictureViewer()

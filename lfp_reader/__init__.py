@@ -67,11 +67,9 @@ Copyright (C) 2012-2013 Behnam Esfahbod.
 """
 
 
-from lfp_file import (
-        LfpGenericFile, LfpGenericError,
-        LfpPictureFile, LfpPictureError,
-        LfpStorageFile, LfpStorageError,
-        )
+from lfp_file    import LfpGenericFile, LfpGenericError
+from lfp_picture import LfpPictureFile, LfpPictureError
+from lfp_storage import LfpStorageFile, LfpStorageError
 
 
 __version__     = "1.4"

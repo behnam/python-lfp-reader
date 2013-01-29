@@ -30,7 +30,7 @@ import sys
 import math
 from cStringIO import StringIO
 
-import Image as PImage
+import Image
 
 from lfp_reader import LfpPictureFile
 
@@ -49,8 +49,8 @@ def gen_all_focused(lfp):
     if len(images) == 0:
         raise Exception("%s: LFP Picture file does not contain JPEG-based refocused stack" % lfp.file_path)
 
-    p_all_focused = PImage.open(StringIO(images[0].chunk.data))
-    p_images = dict((image.chunk.sha1, PImage.open(StringIO(image.chunk.data)))
+    p_all_focused = Image.open(StringIO(images[0].chunk.data))
+    p_images = dict((image.chunk.sha1, Image.open(StringIO(image.chunk.data)))
         for image in images)
 
     for i in xrange(depth_lut.width):
@@ -77,7 +77,9 @@ def export_all_focused(lfp_path):
 
 
 def main(lfp_paths):
-    for lfp_path in lfp_paths:
+    for idx, lfp_path in enumerate(lfp_paths):
+        if idx > 0: print
+        print "LFP Picture file: %s" % lfp_path
         export_all_focused(lfp_path)
 
 

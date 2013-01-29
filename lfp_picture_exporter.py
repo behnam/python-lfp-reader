@@ -32,14 +32,10 @@ from lfp_reader import LfpPictureFile
 
 
 def main(lfp_paths):
-    first = True
-    for lfp_path in lfp_paths:
-        if not first: print
-        first = False
-
-        print lfp_path
-        lfp = LfpPictureFile(lfp_path).load()
-        lfp.export()
+    for idx, lfp_path in enumerate(lfp_paths):
+        if idx > 0: print
+        print "LFP Picture file: %s" % lfp_path
+        LfpPictureFile(lfp_path).load().export()
 
 
 def usage(errcode=0, of=sys.stderr):

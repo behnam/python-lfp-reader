@@ -31,8 +31,6 @@ import sys
 from lfp_reader import LfpPictureFile
 
 def print_lfp_picture_info(lfp_path):
-    print lfp_path
-
     lfp = LfpPictureFile(lfp_path).load()
 
     print "    Frame:"
@@ -55,6 +53,7 @@ def print_lfp_picture_info(lfp_path):
         print "\t\t",
         for image in lfp.refocus_stack.images:
             print "%5.2f" % image.lambda_,
+        print
         '''TODO Depth Table is too big in new files to be shown as text
         print "\tDepth Table:"
         for i in xrange(lfp.refocus_stack.depth_lut.width):
@@ -67,10 +66,9 @@ def print_lfp_picture_info(lfp_path):
 
 
 def main(lfp_paths):
-    first = True
-    for lfp_path in lfp_paths:
-        if not first: print
-        first = False
+    for idx, lfp_path in enumerate(lfp_paths):
+        if idx > 0: print
+        print "LFP Picture file: %s" % lfp_path
         print_lfp_picture_info(lfp_path)
 
 
