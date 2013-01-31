@@ -26,6 +26,7 @@
 
 import os, os.path
 from operator import itemgetter
+import json
 
 import lfp_section
 
@@ -122,4 +123,18 @@ class LfpGenericFile:
         with open(exp_path, 'wb') as exp_file:
             print "Create file: %s" % exp_path
             exp_file.write(exp_data)
+
+
+    ################
+    # Printing
+
+    def print_info(self):
+        # Write file metadata and list its data chunks
+        print "    Metadata:"
+        for line in json.dumps(self.meta.content, indent=4).split('\n'):
+            print "\t%s" % line
+        print
+        print "    Data Chunks: %d" % len(self.chunks)
+        for sha1, chunk in self.chunks_sorted:
+            print '\t%s : %d B' % (sha1, chunk.size)
 

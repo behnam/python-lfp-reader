@@ -21,7 +21,7 @@
 # Copyright (C) 2012-2013  Behnam Esfahbod
 
 
-"""Show information about LFP file
+"""Write the content of a LFP file data chunk to standard output
 """
 
 
@@ -31,24 +31,26 @@ import sys
 from lfp_reader import LfpGenericFile
 
 
-def main(lfp_paths):
-    for idx, lfp_path in enumerate(lfp_paths):
-        if idx > 0: print
-        print "LFP file: %s" % lfp_path
-        LfpGenericFile(lfp_path).load().print_info()
+def main(lfp_path, sha1):
+    lfp = LfpGenericFile(lfp_path).load()
+    try:
+        chunk = lfp.chunks[sha1]
+    except:
+        raise Exception("LFP file: '%s' Cannot find chunk: '%s'" % (lfp_path, sha1))
+    sys.stdout.write(chunk.data)
 
 
 def usage(errcode=0, of=sys.stderr):
-    print >>of, ("Usage: %s file.lfp [file-2.lfp ...]" %
+    print >>of, ("Usage: %s file.lfp chunk-sha1" %
             os.path.basename(sys.argv[0]))
     sys.exit(errcode)
 
 
 if __name__=='__main__':
-    if len(sys.argv) < 2:
+    if len(sys.argv) != 3:
         usage(1)
     try:
-        main(sys.argv[1:])
+        main(*sys.argv[1:])
     except Exception as err:
         print >>sys.stderr, "Error:", err
         if sys.platform == 'win32': raw_input()

@@ -46,7 +46,7 @@ setup(name="lfp-reader", version="1.4.4",
         license="GNU General Public License v3 or later (GPLv3+)",
 
         author="Behnam Esfahbod",
-        author_email="behnam@esfahbod.info",
+        author_email="behnam@behnam.es",
 
         packages=[
             'lfp_reader'
@@ -54,6 +54,7 @@ setup(name="lfp-reader", version="1.4.4",
 
         scripts=[
             'lfp_file_exporter.py',
+            'lfp_file_get_chunk.py',
             'lfp_file_info.py',
             'lfp_picture_all_focused.py',
             'lfp_picture_exporter.py',
@@ -69,7 +70,8 @@ setup(name="lfp-reader", version="1.4.4",
             ],
 
         install_requires=[
-            "Pillow",
+            #"Pillow",
+            #"gst",
             ],
         )
 

@@ -256,7 +256,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
 
     def export_refocus_stack(self):
         for id, r_image in self._refocus_stack.refocus_images.iteritems():
-            r_image_name = 'image_%02d' % id
+            r_image_name = 'refocus_%02d' % id
             if r_image.chunk:
                 r_image.chunk.export_data(self.get_export_path(r_image_name, r_image.representation))
             else:

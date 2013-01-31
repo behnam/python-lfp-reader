@@ -78,6 +78,6 @@ __copyright__   = "Copyright 2012-2013, Behnam Esfahbod"
 __credits__     = ["Behnam Esfahbod"]
 __license__     = "GPLv3+"
 __maintainer__  = "Behnam Esfahbod"
-__email__       = "behnam@esfahbod.info"
+__email__       = "behnam@behnam.es"
 __status__      = "Production"
 
