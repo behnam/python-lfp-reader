@@ -3,7 +3,7 @@
 # lfp-reader
 # LFP (Light Field Photography) File Reader.
 #
-# http://behnam.github.com/python-lfp-reader/
+# http://code.behnam.es/python-lfp-reader/
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -60,7 +60,7 @@ gobject.type_register(MemSrc)
 
 
 ################################
-# Memory Sink
+# Multi Memory Sink
 
 class MultiMemSink(gst.BaseSink):
 
@@ -88,7 +88,6 @@ class MultiMemSink(gst.BaseSink):
             return gst.FLOW_UNEXPECTED
 
 gobject.type_register(MultiMemSink)
-
 
 
 ################################
@@ -143,17 +142,29 @@ class H246Splitter:
             self.mainloop.quit()
         elif msg.type == gst.MESSAGE_ERROR:
             err, debug = msg.parse_error()
-            #print "Error: %s" % err, debug
             self.mainloop.quit()
+            raise "Error: %s" % err, debug
         return True
 
 
+################################
+# Test
+
+def _split_file(file_path, image_format='jpeg'):
+    print "H264 file: %s" % file_path
+    input_data = open(file_path).read()
+    splitter = H246Splitter(input_data, image_format)
+    images = splitter.get_images()
+    for idx, img in enumerate(images):
+        output_name = '%s-%05d.%s' % (file_path, idx, image_format)
+        print "Create JPEG file: %s" % output_name
+        with file(output_name, 'w') as f:
+            f.write(img)
+
 if __name__=='__main__':
     import sys
-    input_data = open(sys.argv[1]).read()
-    h264splitter = H246Splitter(input_data)
-    images = h264splitter.get_images()
-    for idx, img in enumerate(images):
-        output_name = '%s-%05d.jpeg' % (sys.argv[1], idx)
-        open(output_name, 'w').write(img)
+    if len(sys.argv) not in (2, 3):
+        print "Usage: %s [h264-encoded.data]" % sys.argv[0]
+        sys.exit(1)
+    _split_file(*sys.argv[1:])
 

@@ -3,7 +3,7 @@
 # lfp-reader
 # LFP (Light Field Photography) File Reader.
 #
-# http://behnam.github.com/python-lfp-reader/
+# http://code.behnam.es/python-lfp-reader/
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,23 +30,25 @@ from struct import unpack
 from collections import namedtuple
 from cStringIO import StringIO
 
+import lfp_file
+
 # Python Imageing Library
 try:
     import Image as PIL
 except ImportError:
     PIL = None
+def _check_pimage_module():
+    if PIL is None:
+        raise RuntimeError("Cannot find Python Imaging Library (PIL)")
 
 # GStreamer Python
 try:
-    import _gstreamer
+    import gst_h264_splitter
 except ImportError:
-    _gstreamer = None
-
-import lfp_file
-
-def check_pimage_module():
-    if PIL is None:
-        raise RuntimeError("Cannot find Python Imaging Library (PIL)")
+    gst_h264_splitter = None
+def _check_gst_h264_splitter_module():
+    if gst_h264_splitter is None:
+        raise RuntimeError("Cannot find GStreamer Python library")
 
 
 ################################
@@ -141,11 +143,10 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                             block_of_images = accel_content['blockOfImages']
                             if block_of_images['representation'] == 'h264':
                                 # H264-encoded refocus stack
-                                if _gstreamer is None:
-                                    raise RuntimeError("Cannot find GStreamer Python library")
+                                _check_gst_h264_splitter_module()
                                 images_representation = 'jpeg'
                                 h264_data = self.chunks[block_of_images['blockOfImagesRef']].data
-                                h264_splitter = _gstreamer.H246Splitter(h264_data, image_format=images_representation)
+                                h264_splitter = gst_h264_splitter.H246Splitter(h264_data, image_format=images_representation)
                                 images_data = h264_splitter.get_images()
                                 refocus_images = { id: RefocusImage(
                                     id=id,
@@ -192,11 +193,10 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                         block_of_images = accel_content['blockOfImages']
                         if block_of_images['representation'] == 'h264':
                             # H264-encoded parallax stack
-                            if _gstreamer is None:
-                                raise RuntimeError("Cannot find GStreamer Python library")
+                            _check_gst_h264_splitter_module()
                             images_representation = 'jpeg'
                             h264_data = self.chunks[block_of_images['blockOfImagesRef']].data
-                            h264_splitter = _gstreamer.H246Splitter(h264_data, image_format=images_representation)
+                            h264_splitter = gst_h264_splitter.H246Splitter(h264_data, image_format=images_representation)
                             images_data = h264_splitter.get_images()
                             parallax_images = { id: ParallaxImage(
                                 id=id,
@@ -349,13 +349,13 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         return most_focused
 
     def get_pil_images(self):
-        check_pimage_module()
+        _check_pimage_module()
         stk = self.get_refocus_stack()
         return { id: PIL.open(StringIO(r_image.data if r_image.data else r_image.chunk.data))
             for id, r_image in stk.refocus_images.iteritems() }
 
     def get_pil_all_focused(self):
-        check_pimage_module()
+        _check_pimage_module()
         stk = self.get_refocus_stack()
         depth_lut = stk.depth_lut
         r_images  = stk.refocus_images

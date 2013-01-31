@@ -3,7 +3,7 @@
 # lfp-reader
 # LFP (Light Field Photography) File Reader.
 #
-# http://behnam.github.com/python-lfp-reader/
+# http://code.behnam.es/python-lfp-reader/
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

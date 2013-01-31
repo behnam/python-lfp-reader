@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 cd `dirname $0`
+
 SCRIPT_DIR=".."
 SAMPLE_DIR="../samples"
 
@@ -10,7 +11,7 @@ function _test {
 	inputs=$@
 	echo
 	echo "################################"
-	echo "# lfp_file_$cmd"
+	echo "# lfp_file_$cmd.py"
 	echo
 	$SCRIPT_DIR/lfp_file_$cmd.py $inputs
 }

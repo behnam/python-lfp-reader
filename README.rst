@@ -2,7 +2,7 @@
 LFP (Light Field Photography) File Reader
 =========================================
 
-<http://behnam.github.com/python-lfp-reader>
+<http://code.behnam.es/python-lfp-reader>
 
 Provides a Python library and command-line scripts to read Lytro LFP files, and
 a simple viewer for Lytro LFP Picture files.

@@ -3,7 +3,7 @@
 # lfp-reader
 # LFP (Light Field Photography) File Reader.
 #
-# http://behnam.github.com/python-lfp-reader/
+# http://code.behnam.es/python-lfp-reader/
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ def main(lfp_path, sha1):
     try:
         chunk = lfp.chunks[sha1]
     except:
-        raise Exception("LFP file: '%s' Cannot find chunk: '%s'" % (lfp_path, sha1))
+        raise Exception("LFP file: '%s': cannot find chunk: '%s'" % (lfp_path, sha1))
     sys.stdout.write(chunk.data)
 
 
