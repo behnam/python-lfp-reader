@@ -69,6 +69,12 @@ RefocusStack = _lfp_picture_data_class('RefocusStack',
 RefocusImage = _lfp_picture_data_class('RefocusImage',
         'id lambda_ width height representation chunk data')
 
+ParallaxStack = _lfp_picture_data_class('ParallaxStack',
+        'parallax_images default_width default_height')
+
+ParallaxImage = _lfp_picture_data_class('ParallaxImage',
+        'id coord_x coord_y width height representation chunk data')
+
 DepthLut = _lfp_picture_data_class('DepthLut',
         'width height representation table chunk')
 
@@ -84,6 +90,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         lfp_file.LfpGenericFile.__init__(self, file_path)
         self._frame = None
         self._refocus_stack = None
+        self._parallax_stack = None
 
     def __repr__(self):
         version = self.meta.content['version']
@@ -118,7 +125,6 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                     accel_content = accel_data['vendorContent']
 
                     if accel_type == 'com.lytro.acceleration.refocusStack':
-
                         if 'imageArray' in accel_content:
                             # JPEG-based refocus stack
                             refocus_images = { id: RefocusImage(
@@ -143,13 +149,13 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                                 images_data = h264_splitter.get_images()
                                 refocus_images = { id: RefocusImage(
                                     id=id,
-                                    lambda_=img_meta['lambda'],
-                                    width=img_meta['width'],
-                                    height=img_meta['height'],
+                                    lambda_=img['lambda'],
+                                    width=img['width'],
+                                    height=img['height'],
                                     representation=images_representation,
                                     chunk=None,
                                     data=images_data[id])
-                                    for id, img_meta in enumerate(block_of_images['metadataArray']) }
+                                    for id, img in enumerate(block_of_images['metadataArray']) }
 
                             else:
                                 raise KeyError('Unsupported Processed LFP Picture file')
@@ -182,9 +188,32 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                             depth_lut=depth_lut)
 
                     elif accel_type == 'com.lytro.acceleration.edofParallax':
-                        # H264-based parallax
-                        #TODO process edofParallax
-                        pass
+                        # H264-based Extended Depth of Field Parallax
+                        block_of_images = accel_content['blockOfImages']
+                        if block_of_images['representation'] == 'h264':
+                            # H264-encoded parallax stack
+                            if _gstreamer is None:
+                                raise RuntimeError("Cannot find GStreamer Python library")
+                            images_representation = 'jpeg'
+                            h264_data = self.chunks[block_of_images['blockOfImagesRef']].data
+                            h264_splitter = _gstreamer.H246Splitter(h264_data, image_format=images_representation)
+                            images_data = h264_splitter.get_images()
+                            parallax_images = { id: ParallaxImage(
+                                id=id,
+                                coord_x=img['coord']['x'],
+                                coord_y=img['coord']['x'],
+                                width=img['width'],
+                                height=img['height'],
+                                representation=images_representation,
+                                chunk=None,
+                                data=images_data[id])
+                                for id, img in enumerate(block_of_images['metadataArray']) }
+
+                        default_dimensions = accel_content['displayParameters']['displayDimensions']['value']
+                        self._parallax_stack = ParallaxStack(
+                            default_width=default_dimensions['width'],
+                            default_height=default_dimensions['height'],
+                            parallax_images=parallax_images)
 
                     elif accel_type == 'com.lytro.acceleration.depthMap':
                         # Depth-Map
@@ -192,8 +221,6 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                         pass
 
         except KeyError:
-            #XXX
-            raise
             raise LfpPictureError("Not a valid/supported LFP Picture file")
 
     def get_frame(self):
@@ -202,11 +229,14 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         return self._frame
 
     def get_refocus_stack(self):
-        if not self._refocus_stack:
-            raise LfpPictureError("%s: Not a valid/supported Processed LFP Picture file" % self.file_path)
-        if not self._refocus_stack.refocus_images:
-            raise LfpPictureError("%s: LFP Picture file does not contain JPEG-based refocused stack" % self.file_path)
+        if not self._refocus_stack or not self._refocus_stack.refocus_images:
+            raise LfpPictureError("%s: Cannot find refocus data in LFP Picture file" % self.file_path)
         return self._refocus_stack
+
+    def get_parallax_stack(self):
+        if not self._parallax_stack or not self._parallax_stack.parallax_images:
+            raise LfpPictureError("%s: Cannot find parallax data in LFP Picture file" % self.file_path)
+        return self._parallax_stack
 
     ################
     # Exporting
@@ -216,6 +246,8 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
             self.export_frame()
         if self._refocus_stack:
             self.export_refocus_stack()
+        if self._parallax_stack:
+            self.export_parallax_stack()
 
     def export_frame(self):
         self._frame.metadata.export_data(self.get_export_path('frame_metadata', 'json'))
@@ -233,6 +265,14 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         self._refocus_stack.depth_lut.chunk.export_data(self.get_export_path('depth_lut',
             self._refocus_stack.depth_lut.representation))
         self.export_write('depth_lut', 'txt', self.get_depth_lut_txt())
+
+    def export_parallax_stack(self):
+        for id, r_image in self._parallax_stack.parallax_images.iteritems():
+            r_image_name = 'parallax_%02d' % id
+            if r_image.chunk:
+                r_image.chunk.export_data(self.get_export_path(r_image_name, r_image.representation))
+            else:
+                self.export_write(r_image_name, r_image.representation, r_image.data)
 
     def export_all_focused(self, export_format='jpeg'):
         pil_all_focused = self.get_pil_all_focused()
