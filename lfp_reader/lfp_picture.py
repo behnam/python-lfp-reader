@@ -37,7 +37,7 @@ try:
     import Image as PIL
 except ImportError:
     PIL = None
-def _check_pimage_module():
+def _check_pil_module():
     if PIL is None:
         raise RuntimeError("Cannot find Python Imaging Library (PIL)")
 
@@ -72,13 +72,16 @@ RefocusImage = _lfp_picture_data_class('RefocusImage',
         'id lambda_ width height representation chunk data')
 
 ParallaxStack = _lfp_picture_data_class('ParallaxStack',
-        'parallax_images default_width default_height')
+        'parallax_images default_width default_height viewpoint_width viewpoint_height')
 
 ParallaxImage = _lfp_picture_data_class('ParallaxImage',
-        'id coord_x coord_y width height representation chunk data')
+        'id coord width height representation chunk data')
 
 DepthLut = _lfp_picture_data_class('DepthLut',
         'width height representation table chunk')
+
+Coord = _lfp_picture_data_class('Coord',
+        'x y')
 
 
 class LfpPictureFile(lfp_file.LfpGenericFile):
@@ -131,13 +134,13 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                             # JPEG-based refocus stack
                             refocus_images = { id: RefocusImage(
                                 id=id,
-                                lambda_=img['lambda'],
-                                width=img['width'],
-                                height=img['height'],
-                                representation=img['representation'],
-                                chunk=self.chunks[img['imageRef']],
+                                lambda_=rimg['lambda'],
+                                width=rimg['width'],
+                                height=rimg['height'],
+                                representation=rimg['representation'],
+                                chunk=self.chunks[rimg['imageRef']],
                                 data=None)
-                                for id, img in enumerate(accel_content['imageArray']) }
+                                for id, rimg in enumerate(accel_content['imageArray']) }
 
                         elif 'blockOfImages' in accel_content:
                             block_of_images = accel_content['blockOfImages']
@@ -150,13 +153,13 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                                 images_data = h264_splitter.get_images()
                                 refocus_images = { id: RefocusImage(
                                     id=id,
-                                    lambda_=img['lambda'],
-                                    width=img['width'],
-                                    height=img['height'],
+                                    lambda_=rimg['lambda'],
+                                    width=rimg['width'],
+                                    height=rimg['height'],
                                     representation=images_representation,
                                     chunk=None,
                                     data=images_data[id])
-                                    for id, img in enumerate(block_of_images['metadataArray']) }
+                                    for id, rimg in enumerate(block_of_images['metadataArray']) }
 
                             else:
                                 raise KeyError('Unsupported Processed LFP Picture file')
@@ -200,24 +203,27 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                             images_data = h264_splitter.get_images()
                             parallax_images = { id: ParallaxImage(
                                 id=id,
-                                coord_x=img['coord']['x'],
-                                coord_y=img['coord']['x'],
-                                width=img['width'],
-                                height=img['height'],
+                                coord=Coord(**pimg['coord']),
+                                width=pimg['width'],
+                                height=pimg['height'],
                                 representation=images_representation,
                                 chunk=None,
                                 data=images_data[id])
-                                for id, img in enumerate(block_of_images['metadataArray']) }
+                                for id, pimg in enumerate(block_of_images['metadataArray']) }
 
+                        max_coord_x_i = max(parallax_images, key=lambda i: parallax_images[i].coord.x)
+                        max_coord_y_i = max(parallax_images, key=lambda i: parallax_images[i].coord.y)
                         default_dimensions = accel_content['displayParameters']['displayDimensions']['value']
                         self._parallax_stack = ParallaxStack(
-                            default_width=default_dimensions['width'],
-                            default_height=default_dimensions['height'],
-                            parallax_images=parallax_images)
+                            default_width    = default_dimensions['width'],
+                            default_height   = default_dimensions['height'],
+                            parallax_images  = parallax_images,
+                            viewpoint_width  = 2 * parallax_images[max_coord_x_i].coord.x,
+                            viewpoint_height = 2 * parallax_images[max_coord_y_i].coord.y)
 
                     elif accel_type == 'com.lytro.acceleration.depthMap':
                         # Depth-Map
-                        #TODO process depthMap
+                        #todo process depthMap
                         pass
 
         except KeyError:
@@ -255,29 +261,29 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         self._frame.private_metadata.export_data(self.get_export_path('frame_private_metadata', 'json'))
 
     def export_refocus_stack(self):
-        for id, r_image in self._refocus_stack.refocus_images.iteritems():
+        for id, rimg in self._refocus_stack.refocus_images.iteritems():
             r_image_name = 'refocus_%02d' % id
-            if r_image.chunk:
-                r_image.chunk.export_data(self.get_export_path(r_image_name, r_image.representation))
+            if rimg.chunk:
+                rimg.chunk.export_data(self.get_export_path(r_image_name, rimg.representation))
             else:
-                self.export_write(r_image_name, r_image.representation, r_image.data)
+                self.export_write(r_image_name, rimg.representation, rimg.data)
 
         self._refocus_stack.depth_lut.chunk.export_data(self.get_export_path('depth_lut',
             self._refocus_stack.depth_lut.representation))
         self.export_write('depth_lut', 'txt', self.get_depth_lut_txt())
 
     def export_parallax_stack(self):
-        for id, r_image in self._parallax_stack.parallax_images.iteritems():
+        for id, pimg in self._parallax_stack.parallax_images.iteritems():
             r_image_name = 'parallax_%02d' % id
-            if r_image.chunk:
-                r_image.chunk.export_data(self.get_export_path(r_image_name, r_image.representation))
+            if pimg.chunk:
+                pimg.chunk.export_data(self.get_export_path(r_image_name, pimg.representation))
             else:
-                self.export_write(r_image_name, r_image.representation, r_image.data)
+                self.export_write(r_image_name, pimg.representation, pimg.data)
 
     def export_all_focused(self, export_format='jpeg'):
-        pil_all_focused = self.get_pil_all_focused()
+        pil_all_focused_image = self.get_pil_all_focused_image()
         output = StringIO()
-        pil_all_focused.save(output, export_format)
+        pil_all_focused_image.save(output, export_format)
         self.export_write('all_focused', export_format, output.getvalue())
         output.close()
 
@@ -312,8 +318,8 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
             print "\t%-20s\t%12d" % ("default_height:", self._refocus_stack.default_height)
             print "\tAvailable Focus Depth:"
             print "\t\t",
-            for id, r_image in self._refocus_stack.refocus_images.iteritems():
-                print "%5.2f" % r_image.lambda_,
+            for id, rimg in self._refocus_stack.refocus_images.iteritems():
+                print "%5.2f" % rimg.lambda_,
             print
             '''NOTE Depth Table is too big in new files to be shown as text
             print "\tDepth Table:"
@@ -328,43 +334,47 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
     ################
     # Processing Refocus Stack
 
-    def find_most_focused_f(self, fx=.5, fy=.5):
-        """Parameters `fx` and `fy` are floats in range [0, 1)
+    def find_closest_refocus_image(self, x_f=.5, y_f=.5):
+        """Parameters `x_f` and `y_f` are floats in range [0, 1)
         """
-        stk = self.get_refocus_stack()
-        return self.find_most_focused(
-                int(math.floor(stk.depth_lut.width  * fx)),
-                int(math.floor(stk.depth_lut.height * fy)))
+        rstk = self.get_refocus_stack()
+        return self.find_closest_refocus_image_lut_idx(
+                int(math.floor(rstk.depth_lut.width  * x_f)),
+                int(math.floor(rstk.depth_lut.height * y_f)))
 
-    def find_most_focused(self, ti, tj):
-        """Parameters `ti` and `tj` are indices of the depth table
+    def find_closest_refocus_image_lut_idx(self, ti, tj):
+        """Parameters `ti` and `tj` are indices of the depth look-up table
         """
-        stk = self.get_refocus_stack()
-        taget_lambda = stk.depth_lut.table[ti][tj]
-        most_focused, min_lambda_dist = None, sys.maxint
-        for id, r_image in stk.refocus_images.iteritems():
-            lambda_dist = math.fabs(r_image.lambda_ - taget_lambda)
+        rstk = self.get_refocus_stack()
+        taget_lambda = rstk.depth_lut.table[ti][tj]
+        closest_image, min_lambda_dist = None, sys.maxint
+        for id, rimg in rstk.refocus_images.iteritems():
+            lambda_dist = math.fabs(rimg.lambda_ - taget_lambda)
             if lambda_dist < min_lambda_dist:
-                most_focused, min_lambda_dist = r_image, lambda_dist
-        return most_focused
+                closest_image, min_lambda_dist = rimg, lambda_dist
+        return closest_image
 
-    def get_pil_images(self):
-        _check_pimage_module()
-        stk = self.get_refocus_stack()
-        return { id: PIL.open(StringIO(r_image.data if r_image.data else r_image.chunk.data))
-            for id, r_image in stk.refocus_images.iteritems() }
+    def get_pil_refocus_images(self):
+        """Returns a list of PIL.Image instances
+        """
+        _check_pil_module()
+        rstk = self.get_refocus_stack()
+        return { id: PIL.open(StringIO(rimg.data if rimg.data else rimg.chunk.data))
+            for id, rimg in rstk.refocus_images.iteritems() }
 
-    def get_pil_all_focused(self):
-        _check_pimage_module()
-        stk = self.get_refocus_stack()
-        depth_lut = stk.depth_lut
-        r_images  = stk.refocus_images
-        width     = stk.default_width
-        height    = stk.default_height
+    def get_pil_all_focused_image(self):
+        """Returns PIL.Image instance collaged from refocus images
+        """
+        _check_pil_module()
+        rstk = self.get_refocus_stack()
+        depth_lut = rstk.depth_lut
+        r_images  = rstk.refocus_images
+        width     = rstk.default_width
+        height    = rstk.default_height
 
         init_data = r_images[0].data if r_images[0].data else r_images[0].chunk.data
-        pil_all_focused = PIL.open(StringIO(init_data))
-        pil_images = self.get_pil_images()
+        pil_all_focused_image = PIL.open(StringIO(init_data))
+        pil_images = self.get_pil_refocus_images()
 
         for i in xrange(depth_lut.width):
             for j in xrange(depth_lut.height):
@@ -372,9 +382,34 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                        int(math.floor(height * j / depth_lut.height)),
                        int(math.floor(width  * (i+1) / depth_lut.width)),
                        int(math.floor(height * (j+1) / depth_lut.height)))
-                most_focused = self.find_most_focused(i, j)
-                pil_most_focused = pil_images[most_focused.id]
-                piece = pil_most_focused.crop(box)
-                pil_all_focused.paste(piece, box)
-        return pil_all_focused
+                closest_image = self.find_closest_refocus_image_lut_idx(i, j)
+                pil_all_focused = pil_images[closest_image.id]
+                piece = pil_all_focused.crop(box)
+                pil_all_focused_image.paste(piece, box)
+        return pil_all_focused_image
+
+    ################
+    # Processing Parallax Stack
+
+    def find_closest_parallax_image(self, x_f=.5, y_f=.5):
+        """Parameters `x_f` and `y_f` are floats in range [0, 1)
+        """
+        pstk = self.get_parallax_stack()
+        viewpoint_coord = Coord((x_f-.5) * pstk.viewpoint_width,
+                                (y_f-.5) * pstk.viewpoint_height)
+        closest_image, min_euclidean_dist = None, sys.maxint
+        for id, pimg in pstk.parallax_images.iteritems():
+            euclidean_dist = ( (pimg.coord.x-viewpoint_coord.x)**2
+                             + (pimg.coord.y-viewpoint_coord.y)**2 )
+            if euclidean_dist < min_euclidean_dist:
+                closest_image, min_euclidean_dist = pimg, euclidean_dist
+        return closest_image
+
+    def get_pil_parallax_images(self):
+        """Returns a list of PIL.Image instances
+        """
+        _check_pil_module()
+        pstk = self.get_parallax_stack()
+        return { id: PIL.open(StringIO(pimg.data if pimg.data else pimg.chunk.data))
+            for id, pimg in pstk.parallax_images.iteritems() }
 

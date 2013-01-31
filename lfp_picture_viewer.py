@@ -46,8 +46,8 @@ class LfpPictureViewer():
     """View and refocues Processed LFP Picture files (*-stk.lfp)
     """
 
-    def __init__(self, lfp_path=None, size=(648, 648)):
-        self._active_size = size
+    def __init__(self, lfp_path=None, view_size=(648, 648)):
+        self._view_size = view_size
 
         self._tkroot = Tkinter.Tk()
         self._lfp_path = lfp_path
@@ -55,37 +55,72 @@ class LfpPictureViewer():
             self._lfp_path = tkFileDialog.askopenfilename(defaultextension="lfp")
         self._tkroot.wm_title(os.path.basename(self._lfp_path))
         self._tkroot.protocol("WM_DELETE_WINDOW", self.quit)
-        self._tkroot.geometry("%dx%d" % self._active_size)
-        #self._tkroot.bind('<Configure>', self.resize)
+        self._tkroot.geometry("%dx%d" % self._view_size)
+        #todo self._tkroot.bind('<Configure>', self.resize)
 
         self._lfp = LfpPictureFile(self._lfp_path).load()
-        self._depth_lut = self._lfp.get_refocus_stack().depth_lut
-        self._pil_images = self._lfp.get_pil_images()
-
         self._pic = Tkinter.Label(self._tkroot)
-        self._pic.bind("<Button-1>", self.click)
+
+        self._pil_refocus_images    = self._lfp.get_pil_refocus_images()
+        self._pic.bind("<Button-1>", self._cb_refocus)
+
+        self._pil_all_focused_image = self._lfp.get_pil_all_focused_image()
+        self._pic.bind("<Button-2>", self._cb_all_focused)
+
+        try:
+            self._pil_parallax_images   = self._lfp.get_pil_parallax_images()
+            self._pic.bind("<Button-3>", self._cb_parallax)
+        except: pass
+
+        # Set default view
+        #self.view_refocus_to(.5, .5)
+        self.view_all_focused()
+        #self.view_parallax_to(.5, .5)
+
         self._pic.pack()
-
-        self.focus_image()
-
         self._tkroot.mainloop()
 
-    def focus_image(self, x=.5, y=.5):
-        self._active_sha1 = self._lfp.find_most_focused_f(x, y).id
-        self.draw_image(self._active_size)
-
-    def draw_image(self, size):
-        self._active_image = self._pil_images[self._active_sha1].resize(size, Image.ANTIALIAS)
+    def draw_image(self, pil_image):
+        self._active_image = pil_image.resize(self._view_size, Image.ANTIALIAS)
         self._pimage = ImageTk.PhotoImage(self._active_image)
         self._pic.configure(image=self._pimage)
-
-    def click(self, event):
-        self.focus_image(event.x / self._active_size[0],
-                         event.y / self._active_size[1])
 
     def quit(self):
         self._tkroot.destroy()
         self._tkroot.quit()
+
+    ################
+    # Refocus
+
+    def view_refocus_to(self, x_f, y_f):
+        closest_refocus = self._lfp.find_closest_refocus_image(x_f, y_f)
+        pil_r_image = self._pil_refocus_images[closest_refocus.id]
+        self.draw_image(pil_r_image)
+
+    def _cb_refocus(self, event):
+        coords_f = [event.x / self._view_size[0], event.y / self._view_size[1]]
+        self.view_refocus_to(*coords_f)
+
+    ################
+    # All-Focused
+
+    def view_all_focused(self):
+        self.draw_image(self._pil_all_focused_image)
+
+    def _cb_all_focused(self, event):
+        self.view_all_focused()
+
+    ################
+    # Parallax
+
+    def view_parallax_to(self, x_f, y_f):
+        closest_parallax = self._lfp.find_closest_parallax_image(x_f, y_f)
+        pil_p_image = self._pil_parallax_images[closest_parallax.id]
+        self.draw_image(pil_p_image)
+
+    def _cb_parallax(self, event):
+        coords_f = [event.x / self._view_size[0], event.y / self._view_size[1]]
+        self.view_parallax_to(*coords_f)
 
 
 def main(lfp_paths):
