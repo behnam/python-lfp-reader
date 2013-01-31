@@ -71,11 +71,10 @@ class LfpPictureViewer():
         self._tkroot.mainloop()
 
     def focus_image(self, x=.5, y=.5):
-        self._active_sha1 = self._lfp.find_most_focused_f(x, y).chunk.sha1
+        self._active_sha1 = self._lfp.find_most_focused_f(x, y).id
         self.draw_image(self._active_size)
 
     def draw_image(self, size):
-        #self._active_image = self._pil_images[self._active_sha1].resize(size, Image.ANTIALIAS)
         self._active_image = self._pil_images[self._active_sha1].resize(size, Image.ANTIALIAS)
         self._pimage = ImageTk.PhotoImage(self._active_image)
         self._pic.configure(image=self._pimage)

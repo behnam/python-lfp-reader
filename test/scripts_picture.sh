@@ -19,20 +19,20 @@ _test 'all_focused' \
 	$SAMPLE_DIR/IMG_0001-stk.lfp
 
 _test 'exporter' \
-	$SAMPLE_DIR/IMG_0001.lfp \
-	$SAMPLE_DIR/IMG_0001-stk.lfp \
-	$SAMPLE_DIR/IMG_0002.lfp \
-	$SAMPLE_DIR/IMG_0002-stk.lfp \
+	$SAMPLE_DIR/IMG_0001.lfp	\
+	$SAMPLE_DIR/IMG_0001-stk.lfp	\
+	$SAMPLE_DIR/IMG_0002.lfp	\
+	$SAMPLE_DIR/IMG_0002-stk.lfp	\
 	$SAMPLE_DIR/IMG_0002-dm.lfp
 
 _test 'info' \
-	$SAMPLE_DIR/IMG_0001.lfp \
-	$SAMPLE_DIR/IMG_0001-stk.lfp \
-	$SAMPLE_DIR/IMG_0002.lfp \
-	$SAMPLE_DIR/IMG_0002-stk.lfp \
+	$SAMPLE_DIR/IMG_0001.lfp	\
+	$SAMPLE_DIR/IMG_0001-stk.lfp	\
+	$SAMPLE_DIR/IMG_0002.lfp	\
+	$SAMPLE_DIR/IMG_0002-stk.lfp	\
 	$SAMPLE_DIR/IMG_0002-dm.lfp
 
 _test 'viewer' \
-	$SAMPLE_DIR/IMG_0001-stk.lfp \
-	#$SAMPLE_DIR/IMG_0002-stk.lfp
+	$SAMPLE_DIR/IMG_0001-stk.lfp	\
+	$SAMPLE_DIR/IMG_0002-stk.lfp
 

@@ -141,6 +141,18 @@ The main classes in the ``lfp_reader`` package are:
 - ``LfpStorageFile``
 
 
+Dependencies
+============
+
+- Python Imaging Library:
+  ``PIL`` (http://pypi.python.org/pypi/PIL) or
+  ``Pillow`` (http://pypi.python.org/pypi/Pillow/).
+
+- GStreamer Python:
+  ``gstreamer``, ``gst-python`` and the ``gst-plugins-ugly`` plugin set
+  (http://gstreamer.freedesktop.org/modules/).
+
+
 Code License
 ============
 

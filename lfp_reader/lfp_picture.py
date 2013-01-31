@@ -30,10 +30,17 @@ from struct import unpack
 from collections import namedtuple
 from cStringIO import StringIO
 
+# Python Imageing Library
 try:
     import Image as PIL
 except ImportError:
     PIL = None
+
+# GStreamer Python
+try:
+    import _gstreamer
+except ImportError:
+    _gstreamer = None
 
 import lfp_file
 
@@ -57,10 +64,10 @@ Frame = _lfp_picture_data_class('Frame',
         'metadata image private_metadata')
 
 RefocusStack = _lfp_picture_data_class('RefocusStack',
-        'images depth_lut default_lambda default_width default_height')
+        'refocus_images depth_lut default_lambda default_width default_height')
 
 RefocusImage = _lfp_picture_data_class('RefocusImage',
-        'lambda_ width height representation chunk')
+        'id lambda_ width height representation chunk data')
 
 DepthLut = _lfp_picture_data_class('DepthLut',
         'width height representation table chunk')
@@ -114,22 +121,41 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
 
                         if 'imageArray' in accel_content:
                             # JPEG-based refocus stack
-                            images = [
-                                    RefocusImage(
-                                        lambda_=img['lambda'],
-                                        width=img['width'],
-                                        height=img['height'],
-                                        representation=img['representation'],
-                                        chunk=self.chunks[img['imageRef']])
-                                    for img in accel_content['imageArray'] ]
+                            refocus_images = { id: RefocusImage(
+                                id=id,
+                                lambda_=img['lambda'],
+                                width=img['width'],
+                                height=img['height'],
+                                representation=img['representation'],
+                                chunk=self.chunks[img['imageRef']],
+                                data=None)
+                                for id, img in enumerate(accel_content['imageArray']) }
 
                         elif 'blockOfImages' in accel_content:
-                            # H264-based refocus stack
-                            #TODO process refocusStack
-                            images = []
+                            block_of_images = accel_content['blockOfImages']
+                            if block_of_images['representation'] == 'h264':
+                                # H264-encoded refocus stack
+                                if _gstreamer is None:
+                                    raise RuntimeError("Cannot find GStreamer Python library")
+                                images_representation = 'jpeg'
+                                h264_data = self.chunks[block_of_images['blockOfImagesRef']].data
+                                h264_splitter = _gstreamer.H246Splitter(h264_data, image_format=images_representation)
+                                images_data = h264_splitter.get_images()
+                                refocus_images = { id: RefocusImage(
+                                    id=id,
+                                    lambda_=img_meta['lambda'],
+                                    width=img_meta['width'],
+                                    height=img_meta['height'],
+                                    representation=images_representation,
+                                    chunk=None,
+                                    data=images_data[id])
+                                    for id, img_meta in enumerate(block_of_images['metadataArray']) }
+
+                            else:
+                                raise KeyError('Unsupported Processed LFP Picture file')
 
                         else:
-                            raise KeyError()
+                            raise KeyError('Unsupported Processed LFP Picture file')
 
                         # Depth Look-up Table
                         depth_width  = accel_content['depthLut']['width']
@@ -152,7 +178,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                             default_lambda=accel_content['defaultLambda'],
                             default_width=default_dimensions['width'],
                             default_height=default_dimensions['height'],
-                            images=images,
+                            refocus_images=refocus_images,
                             depth_lut=depth_lut)
 
                     elif accel_type == 'com.lytro.acceleration.edofParallax':
@@ -168,17 +194,17 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         except KeyError:
             #XXX
             raise
-            raise LfpPictureError("Not a valid LFP Picture file")
+            raise LfpPictureError("Not a valid/supported LFP Picture file")
 
     def get_frame(self):
         if not self._frame:
-            raise LfpPictureError("%s: Not a valid Raw LFP Picture file" % self.file_path)
+            raise LfpPictureError("%s: Not a valid/supported Raw LFP Picture file" % self.file_path)
         return self._frame
 
     def get_refocus_stack(self):
         if not self._refocus_stack:
-            raise LfpPictureError("%s: Not a valid Processed LFP Picture file" % self.file_path)
-        if not self._refocus_stack.images:
+            raise LfpPictureError("%s: Not a valid/supported Processed LFP Picture file" % self.file_path)
+        if not self._refocus_stack.refocus_images:
             raise LfpPictureError("%s: LFP Picture file does not contain JPEG-based refocused stack" % self.file_path)
         return self._refocus_stack
 
@@ -197,20 +223,23 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         self._frame.private_metadata.export_data(self.get_export_path('frame_private_metadata', 'json'))
 
     def export_refocus_stack(self):
-        for idx, image in enumerate(self._refocus_stack.images):
-            image.chunk.export_data(self.get_export_path('image_%02d' % idx,
-                image.representation))
+        for id, r_image in self._refocus_stack.refocus_images.iteritems():
+            r_image_name = 'image_%02d' % id
+            if r_image.chunk:
+                r_image.chunk.export_data(self.get_export_path(r_image_name, r_image.representation))
+            else:
+                self.export_write(r_image_name, r_image.representation, r_image.data)
+
         self._refocus_stack.depth_lut.chunk.export_data(self.get_export_path('depth_lut',
             self._refocus_stack.depth_lut.representation))
         self.export_write('depth_lut', 'txt', self.get_depth_lut_txt())
 
-    def export_all_focused(self, formats=('jpeg', 'png')):
+    def export_all_focused(self, export_format='jpeg'):
         pil_all_focused = self.get_pil_all_focused()
-        for format_ in formats:
-            output = StringIO()
-            pil_all_focused.save(output, format_)
-            self.export_write('all_focused', format_, output.getvalue())
-            output.close()
+        output = StringIO()
+        pil_all_focused.save(output, export_format)
+        self.export_write('all_focused', export_format, output.getvalue())
+        output.close()
 
     def get_depth_lut_txt(self):
         depth_lut = self._refocus_stack.depth_lut
@@ -235,7 +264,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
 
         print "    Refocus-Stack:"
         if self._refocus_stack:
-            print "\t%-20s\t%12d" % ("images:", len(self._refocus_stack.images))
+            print "\t%-20s\t%12d" % ("refocus_images#:", len(self._refocus_stack.refocus_images))
             print "\t%-20s\t%12s" % ("depth_lut:", "%dx%d" %
                     (self._refocus_stack.depth_lut.width, self._refocus_stack.depth_lut.height))
             print "\t%-20s\t%12d" % ("default_lambda:", self._refocus_stack.default_lambda)
@@ -243,10 +272,10 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
             print "\t%-20s\t%12d" % ("default_height:", self._refocus_stack.default_height)
             print "\tAvailable Focus Depth:"
             print "\t\t",
-            for image in self._refocus_stack.images:
-                print "%5.2f" % image.lambda_,
+            for id, r_image in self._refocus_stack.refocus_images.iteritems():
+                print "%5.2f" % r_image.lambda_,
             print
-            '''TODO Depth Table is too big in new files to be shown as text
+            '''NOTE Depth Table is too big in new files to be shown as text
             print "\tDepth Table:"
             for i in xrange(self._refocus_stack.depth_lut.width):
                 print "\t\t",
@@ -273,27 +302,28 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         stk = self.get_refocus_stack()
         taget_lambda = stk.depth_lut.table[ti][tj]
         most_focused, min_lambda_dist = None, sys.maxint
-        for image in stk.images:
-            lambda_dist = math.fabs(image.lambda_ - taget_lambda)
+        for id, r_image in stk.refocus_images.iteritems():
+            lambda_dist = math.fabs(r_image.lambda_ - taget_lambda)
             if lambda_dist < min_lambda_dist:
-                most_focused, min_lambda_dist = image, lambda_dist
+                most_focused, min_lambda_dist = r_image, lambda_dist
         return most_focused
 
     def get_pil_images(self):
         check_pimage_module()
         stk = self.get_refocus_stack()
-        return dict((image.chunk.sha1, PIL.open(StringIO(image.chunk.data)))
-            for image in stk.images)
+        return { id: PIL.open(StringIO(r_image.data if r_image.data else r_image.chunk.data))
+            for id, r_image in stk.refocus_images.iteritems() }
 
     def get_pil_all_focused(self):
         check_pimage_module()
         stk = self.get_refocus_stack()
         depth_lut = stk.depth_lut
-        images    = stk.images
+        r_images  = stk.refocus_images
         width     = stk.default_width
         height    = stk.default_height
 
-        pil_all_focused = PIL.open(StringIO(images[0].chunk.data))
+        init_data = r_images[0].data if r_images[0].data else r_images[0].chunk.data
+        pil_all_focused = PIL.open(StringIO(init_data))
         pil_images = self.get_pil_images()
 
         for i in xrange(depth_lut.width):
@@ -303,7 +333,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                        int(math.floor(width  * (i+1) / depth_lut.width)),
                        int(math.floor(height * (j+1) / depth_lut.height)))
                 most_focused = self.find_most_focused(i, j)
-                pil_most_focused = pil_images[most_focused.chunk.sha1]
+                pil_most_focused = pil_images[most_focused.id]
                 piece = pil_most_focused.crop(box)
                 pil_all_focused.paste(piece, box)
         return pil_all_focused
