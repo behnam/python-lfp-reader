@@ -126,7 +126,7 @@ class H246Splitter:
         self.pipeline.add(self.multi_mem_sink)
         self.pipeline.get_by_name('tail').link(self.multi_mem_sink)
 
-    #todo Find a way to not intrupt gobject mainloop if already exists
+    #FIXME Find a way to not intrupt gobject mainloop if already exists
 
     def get_images(self):
         if not self.images:

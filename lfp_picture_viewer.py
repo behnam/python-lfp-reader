@@ -63,27 +63,34 @@ class LfpPictureViewer():
 
         self._pil_refocus_images    = self._lfp.get_pil_refocus_images()
         self._pic.bind("<Button-1>", self._cb_refocus)
+        self._pic.bind("<B1-Motion>", self._cb_refocus)
 
         self._pil_all_focused_image = self._lfp.get_pil_all_focused_image()
         self._pic.bind("<Button-2>", self._cb_all_focused)
+        self._pic.bind("<B2-Motion>", self._cb_all_focused)
 
         try:
             self._pil_parallax_images   = self._lfp.get_pil_parallax_images()
             self._pic.bind("<Button-3>", self._cb_parallax)
+            self._pic.bind("<B3-Motion>", self._cb_parallax)
         except: pass
 
+        self._showing_pil_image = None
+
         # Set default view
-        #self.view_refocus_to(.5, .5)
+        #self.view_refocus_at(.5, .5)
         self.view_all_focused()
-        #self.view_parallax_to(.5, .5)
+        #self.view_parallax_at(.5, .5)
 
         self._pic.pack()
         self._tkroot.mainloop()
 
-    def draw_image(self, pil_image):
-        self._active_image = pil_image.resize(self._view_size, Image.ANTIALIAS)
-        self._pimage = ImageTk.PhotoImage(self._active_image)
-        self._pic.configure(image=self._pimage)
+    def show_image(self, pil_image):
+        if pil_image == self._showing_pil_image: return
+        self._showing_pil_image = pil_image
+        self._resized_pil_image = pil_image.resize(self._view_size, Image.ANTIALIAS)
+        self._resized_tkp_image = ImageTk.PhotoImage(self._resized_pil_image)
+        self._pic.configure(image=self._resized_tkp_image)
 
     def quit(self):
         self._tkroot.destroy()
@@ -92,20 +99,20 @@ class LfpPictureViewer():
     ################
     # Refocus
 
-    def view_refocus_to(self, x_f, y_f):
+    def view_refocus_at(self, x_f, y_f):
         closest_refocus = self._lfp.find_closest_refocus_image(x_f, y_f)
         pil_r_image = self._pil_refocus_images[closest_refocus.id]
-        self.draw_image(pil_r_image)
+        self.show_image(pil_r_image)
 
     def _cb_refocus(self, event):
         coords_f = [event.x / self._view_size[0], event.y / self._view_size[1]]
-        self.view_refocus_to(*coords_f)
+        self.view_refocus_at(*coords_f)
 
     ################
     # All-Focused
 
     def view_all_focused(self):
-        self.draw_image(self._pil_all_focused_image)
+        self.show_image(self._pil_all_focused_image)
 
     def _cb_all_focused(self, event):
         self.view_all_focused()
@@ -113,14 +120,14 @@ class LfpPictureViewer():
     ################
     # Parallax
 
-    def view_parallax_to(self, x_f, y_f):
+    def view_parallax_at(self, x_f, y_f):
         closest_parallax = self._lfp.find_closest_parallax_image(x_f, y_f)
         pil_p_image = self._pil_parallax_images[closest_parallax.id]
-        self.draw_image(pil_p_image)
+        self.show_image(pil_p_image)
 
     def _cb_parallax(self, event):
         coords_f = [event.x / self._view_size[0], event.y / self._view_size[1]]
-        self.view_parallax_to(*coords_f)
+        self.view_parallax_at(*coords_f)
 
 
 def main(lfp_paths):
