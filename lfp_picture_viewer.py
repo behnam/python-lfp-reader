@@ -48,20 +48,16 @@ class LfpPictureViewer():
     """View and refocues Processed LFP Picture files (*-stk.lfp)
     """
 
-    def __init__(self, lfp_path=None, display_size=(648, 648)):
-        self._display_size = display_size
+    def __init__(self, lfp_path=None, init_size=(648, 648)):
+        self._set_active_size(init_size)
 
         self._tkroot = Tkinter.Tk()
-        self._lfp_path = lfp_path
         if lfp_path is None:
-            self._lfp_path = tkFileDialog.askopenfilename(defaultextension="lfp")
-        self._tkroot.wm_title(os.path.basename(self._lfp_path))
+            lfp_path = tkFileDialog.askopenfilename(defaultextension="lfp")
+        self._tkroot.wm_title(os.path.basename(lfp_path))
         self._tkroot.protocol("WM_DELETE_WINDOW", self.quit)
-        self._tkroot.geometry("%dx%d" % self._display_size)
-        #todo self._tkroot.bind('<Configure>', self.resize)
-
-        self._lfp = LfpPictureFile(self._lfp_path).load()
-        self._lfp.get_refocus_stack()
+        self._tkroot.geometry("%dx%d" % self._active_size)
+        self._tkroot.bind('<Configure>', self._cb_resize)
 
         # Create picture gui object
         self._pic = Tkinter.Label(self._tkroot)
@@ -73,8 +69,11 @@ class LfpPictureViewer():
         self._pic.bind("<B3-Motion>", self._cb_parallax)
         self._pic.pack()
 
+        self._lfp = LfpPictureFile(lfp_path).load()
+        self._lfp.get_refocus_stack()
+
         # Set default image
-        self._showing_pil_image = None
+        self._active_pil_image = None
         self.do_refocus_at(.5, .5)
         #self.do_all_focused()
         #self.do_parallax_at(.5, .5)
@@ -85,20 +84,39 @@ class LfpPictureViewer():
         self._tkroot.destroy()
         self._tkroot.quit()
 
+
     ################################
     # Display Image
+
+    def _cb_resize(self, event):
+        self._set_active_size((event.width, event.height))
+        self._redraw_active_image()
+
+    def _set_active_size(self, size):
+        self._active_size = (min(size[0], size[1]), min(size[0], size[1]))
+        self._resized_pil_cache = {}
 
     def show_image_by_group_id(self, group, image_id):
         pil_image = self._lfp.get_pil_image(group, image_id)
         return self.show_pil_image(pil_image)
 
     def show_pil_image(self, pil_image):
-        if pil_image == self._showing_pil_image: return False
-        self._showing_pil_image = pil_image
-        self._resized_pil_image = self._showing_pil_image.resize(self._display_size, Image.ANTIALIAS)
+        if pil_image == self._active_pil_image: return False
+        self._active_pil_image  = pil_image
+        self._redraw_active_image()
+        return True
+
+    def _redraw_active_image(self):
+        self._resized_pil_image = self._get_resized_pil_image(self._active_pil_image)
         self._resized_tkp_image = ImageTk.PhotoImage(self._resized_pil_image)
         self._pic.configure(image=self._resized_tkp_image)
-        return True
+
+    def _get_resized_pil_image(self, pil_image):
+        if pil_image not in self._resized_pil_cache:
+            self._resized_pil_cache[pil_image] = pil_image.resize(
+                    self._active_size, Image.ANTIALIAS)
+        return self._resized_pil_cache[pil_image]
+
 
     ################################
     # Refocus
@@ -111,8 +129,9 @@ class LfpPictureViewer():
         return self.show_image_by_group_id('refocus', closest_refocus.id)
 
     def _cb_refocus(self, event):
-        coords_f = [event.x / self._display_size[0], event.y / self._display_size[1]]
+        coords_f = [event.x / self._active_size[0], event.y / self._active_size[1]]
         self.do_refocus_at(*coords_f)
+
 
     ################################
     # All-Focused
@@ -122,6 +141,7 @@ class LfpPictureViewer():
 
     def _cb_all_focused(self, event):
         self.do_all_focused()
+
 
     ################################
     # Parallax
@@ -135,8 +155,9 @@ class LfpPictureViewer():
 
     def _cb_parallax(self, event):
         self.do_parallax_at(
-                event.x / self._display_size[0],
-                event.y / self._display_size[1])
+                event.x / self._active_size[0],
+                event.y / self._active_size[1])
+
 
 ################################################################
 
