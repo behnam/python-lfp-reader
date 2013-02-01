@@ -24,6 +24,7 @@
 """Read LFP files
 """
 
+
 import os, os.path
 from operator import itemgetter
 import json
@@ -63,6 +64,10 @@ class LfpGenericFile:
     @property
     def file_path(self):
         return self._file_path
+
+    @property
+    def file_name(self):
+        return os.path.basename(self._file_path)
 
     @property
     def chunks_sorted(self):

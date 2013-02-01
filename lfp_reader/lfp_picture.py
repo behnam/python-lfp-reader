@@ -24,6 +24,7 @@
 """Read and process LFP Picture files
 """
 
+
 import sys
 import math
 from struct import unpack

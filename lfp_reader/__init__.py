@@ -51,6 +51,7 @@ The main classes in the ``lfp_reader`` package are:
 - ``LfpGenericFile``
 - ``LfpPictureFile``
 - ``LfpStorageFile``
+- ``LfpTkViewer``
 
 
 Legal Notice
@@ -67,12 +68,13 @@ Copyright (C) 2012-2013 Behnam Esfahbod.
 """
 
 
-from lfp_file    import LfpGenericFile, LfpGenericError
-from lfp_picture import LfpPictureFile, LfpPictureError
-from lfp_storage import LfpStorageFile, LfpStorageError
+from lfp_file      import LfpGenericFile, LfpGenericError
+from lfp_picture   import LfpPictureFile, LfpPictureError
+from lfp_storage   import LfpStorageFile, LfpStorageError
+from lfp_tk_viewer import LfpTkViewer
 
 
-__version__     = "1.4"
+__version__     = "2.0"
 __author__      = "Behnam Esfahbod"
 __copyright__   = "Copyright 2012-2013, Behnam Esfahbod"
 __credits__     = ["Behnam Esfahbod"]
