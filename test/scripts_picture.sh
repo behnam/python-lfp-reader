@@ -6,14 +6,14 @@ SCRIPT_DIR=".."
 SAMPLE_DIR="../samples"
 
 function _test {
-	cmd=$1
+	cmd=lfp_picture_$1.py
 	shift 1
-	inputs=$@
+	params=$@
 	echo
 	echo "################################"
-	echo "# lfp_picture_$cmd.py"
+	echo "# $cmd"
 	echo
-	$SCRIPT_DIR/lfp_picture_$cmd.py $inputs
+	$SCRIPT_DIR/$cmd $params
 }
 
 _test 'info' \

@@ -31,22 +31,28 @@ import sys
 from lfp_reader import LfpStorageFile
 
 
+def main(lfp_paths):
+    for idx, lfp_path in enumerate(lfp_paths):
+        if idx > 0: print
+        print "LFP Storage file: %s" % lfp_path
+        LfpStorageFile(lfp_path).load().print_info()
+
+
 def usage(errcode=0, of=sys.stderr):
-    print ("Usage: %s storage_file.lfp" %
+    print >>of, ("Usage: %s storage.lfp [storage-2.lfp]" %
             os.path.basename(sys.argv[0]))
     sys.exit(errcode)
 
+
 if __name__=='__main__':
-    if len(sys.argv) < 2 or len(sys.argv) > 2:
-        usage()
-    lfp_path = sys.argv[1]
-
+    if len(sys.argv) < 2:
+        usage(1)
     try:
-        lfp = LfpStorageFile(lfp_path).load()
-        for path, chunk in lfp.files_sorted:
-            print "%12d\t%s" % (chunk.size, path)
-
+        main(sys.argv[1:])
+    except KeyboardInterrupt:
+        exit(2)
     except Exception as err:
         print >>sys.stderr, "Error:", err
-        exit(1)
+        if sys.platform == 'win32': raw_input()
+        exit(9)
 

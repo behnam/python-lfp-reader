@@ -46,11 +46,13 @@ class LfpStorageFile(lfp_file.LfpGenericFile):
     def files_sorted(self):
         return sorted(self.files.iteritems(), key=itemgetter(0))
 
+
     ################################
     # Internals
 
     def __repr__(self):
         return "LfpStorageFile(%s, %s, %d chunks)" % (self.header, self.meta, len(self.chunks))
+
 
     ################################
     # Loading
@@ -63,6 +65,7 @@ class LfpStorageFile(lfp_file.LfpGenericFile):
         except KeyError:
             raise LfpStorageError("Not a valid LFP Storage file")
 
+
     ################################
     # Exporting
 
@@ -70,6 +73,15 @@ class LfpStorageFile(lfp_file.LfpGenericFile):
         self.export_files()
 
     def export_files(self):
-        for path, chunk in self.files_sorted:
-            chunk.export_data(self.get_export_path(path[3:].replace('\\', '__')))
+        for emb_path, chunk in self.files_sorted:
+            chunk.export_data(self.get_export_path(emb_path.replace('\\', '__').replace(':', '')))
+
+
+    ################################
+    # Printing
+
+    def print_info(self):
+        print "    Files:"
+        for emb_path, chunk in self.files_sorted:
+            print "%12d\t%s" % (chunk.size, emb_path)
 

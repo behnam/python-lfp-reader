@@ -21,27 +21,27 @@
 # Copyright (C) 2012-2013  Behnam Esfahbod
 
 
-"""Write the content of a LFP file data chunk to standard output
+"""Write the content of a LFP Storage embedded file to standard output
 """
 
 
 import os.path
 import sys
 
-from lfp_reader import LfpGenericFile
+from lfp_reader import LfpStorageFile
 
 
-def main(lfp_path, sha1):
-    lfp = LfpGenericFile(lfp_path).load()
+def main(lfp_path, emb_path):
+    lfp = LfpStorageFile(lfp_path).load()
     try:
-        chunk = lfp.chunks[sha1]
+        chunk = lfp.files[emb_path]
     except:
-        raise Exception("Cannot find data chunk `%s' in LFP file `%s'" % (sha1, lfp_path))
+        raise Exception("Cannot find embedded file `%s' in LFP Storrage file `%s'" % (emb_path, lfp_path))
     sys.stdout.write(chunk.data)
 
 
 def usage(errcode=0, of=sys.stderr):
-    print >>of, ("Usage: %s file.lfp chunk-sha1" %
+    print >>of, ("Usage: %s storage.lfp [storage-2.lfp]" %
             os.path.basename(sys.argv[0]))
     sys.exit(errcode)
 

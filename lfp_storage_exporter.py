@@ -31,34 +31,38 @@ import sys
 from lfp_reader import LfpStorageFile
 
 
+def main(lfp_paths):
+    for idx, lfp_path in enumerate(lfp_paths):
+        if idx > 0: print
+        print "LFP Storage file: %s" % lfp_path
+        LfpStorageFile(lfp_path).load().export()
+
+        '''
+        # Write the content of one embedded file to standard output
+        try:
+            exp_chunk = lfp.files[exp_path]
+        except:
+            raise Exception("Cannot find embedded file `%s` in LFP Storrage file %s"
+                    % (exp_path, lfp_path))
+        sys.stdout.write(exp_chunk.data)
+        '''
+
+
 def usage(errcode=0, of=sys.stderr):
-    print ("Usage: %s storage_file.lfp [embedded-file-path]" %
+    print >>of, ("Usage: %s storage.lfp [storage-2.lfp]" %
             os.path.basename(sys.argv[0]))
     sys.exit(errcode)
 
+
 if __name__=='__main__':
-    if len(sys.argv) < 2 or len(sys.argv) > 3:
-        usage()
-    lfp_path = sys.argv[1]
-    exp_path = sys.argv[2] if len(sys.argv) == 3 else None
-
+    if len(sys.argv) < 2:
+        usage(1)
     try:
-        lfp = LfpStorageFile(lfp_path).load()
-
-        if not exp_path:
-            # Export all files
-            lfp.export()
-
-        else:
-            # Write the content of one embedded file to standard output
-            try:
-                exp_chunk = lfp.files[exp_path]
-            except:
-                raise Exception("Cannot find embedded file `%s` in LFP Storrage file %s"
-                        % (exp_path, lfp_path))
-            sys.stdout.write(exp_chunk.data)
-
+        main(sys.argv[1:])
+    except KeyboardInterrupt:
+        exit(2)
     except Exception as err:
         print >>sys.stderr, "Error:", err
-        exit(1)
+        if sys.platform == 'win32': raw_input()
+        exit(9)
 
