@@ -65,7 +65,8 @@ setup(name="lfp-reader", version="2.0.0",
             ],
 
         data_files=[
-            ('lfp_reader', ('COPYING.txt', 'README.rst')),
+            ('lib/python-lfp-reader',
+                ('COPYING.txt', 'README.rst')),
             ],
 
         )
