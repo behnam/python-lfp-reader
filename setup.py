@@ -29,7 +29,7 @@ setup(name="lfp-reader", version="2.0.0",
         long_description=open('README.rst').read(),
 
         url='http://code.behnam.es/python-lfp-reader/',
-        download_url='https://github.com/behnam/python-lfp-reader/',
+        download_url='https://github.com/behnam/python-lfp-reader/tarball/master',
 
         classifiers=[
             'Development Status :: 5 - Production/Stable',
@@ -61,6 +61,7 @@ setup(name="lfp-reader", version="2.0.0",
             'lfp_picture_info.py',
             'lfp_picture_viewer.py',
             'lfp_storage_exporter.py',
+            'lfp_storage_get_file.py',
             'lfp_storage_info.py',
             ],
 
