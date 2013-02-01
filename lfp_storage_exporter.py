@@ -60,9 +60,9 @@ if __name__=='__main__':
     try:
         main(sys.argv[1:])
     except KeyboardInterrupt:
-        exit(2)
+        sys.exit(2)
     except Exception as err:
         print >>sys.stderr, "Error:", err
         if sys.platform == 'win32': raw_input()
-        exit(9)
+        sys.exit(9)
 

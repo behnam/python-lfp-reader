@@ -52,8 +52,11 @@ class LfpPictureViewer():
         self._set_active_size(init_size)
 
         self._tkroot = Tkinter.Tk()
-        if lfp_path is None:
+        if not lfp_path:
             lfp_path = tkFileDialog.askopenfilename(defaultextension="lfp")
+        if not lfp_path:
+            sys.exit(3)
+
         self._tkroot.wm_title(os.path.basename(lfp_path))
         self._tkroot.protocol("WM_DELETE_WINDOW", self.quit)
         self._tkroot.geometry("%dx%d" % self._active_size)
@@ -162,13 +165,15 @@ class LfpPictureViewer():
 ################################################################
 
 def main(lfp_paths):
-    if len(lfp_paths) > 0:
-        for idx, lfp_path in enumerate(lfp_paths):
-            if idx > 0: print
+    if not lfp_paths:
+        lfp_paths = [None]
+    for idx, lfp_path in enumerate(lfp_paths):
+        if idx > 0: print
+        if lfp_path is not None:
             print "LFP Picture file: %s" % lfp_path
-            LfpPictureViewer(lfp_path)
-    else:
-        LfpPictureViewer()
+        else:
+            print "Select an LFP Picture file..."
+        LfpPictureViewer(lfp_path)
 
 
 def usage(errcode=0, of=sys.stderr):
@@ -183,9 +188,9 @@ if __name__=='__main__':
     try:
         main(sys.argv[1:])
     except KeyboardInterrupt:
-        exit(2)
+        sys.exit(2)
     except Exception as err:
         print >>sys.stderr, "Error:", err
         if sys.platform == 'win32': raw_input()
-        exit(9)
+        sys.exit(9)
 
