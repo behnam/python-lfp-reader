@@ -28,7 +28,7 @@ import struct
 import json
 
 
-################################
+################################################################
 # General
 
 class LfpReadError(Exception):
@@ -50,7 +50,7 @@ class LfpSection:
     _dpos = None
     _inf  = None
 
-    ################
+    ################################
     # Internals
 
     def __init__(self, inf):
@@ -76,7 +76,7 @@ class LfpSection:
             self._data = self._inf.read(self._size)
         return self._data
 
-    ################
+    ################################
     # Loading
 
     def read(self):
@@ -101,7 +101,7 @@ class LfpSection:
             self._inf.seek(-1, 1)
         return self
 
-    ################
+    ################################
     # Exporting
 
     def export_data(self, exp_path):
@@ -112,7 +112,7 @@ class LfpSection:
             exp_file.write(self.data)
 
 
-################################
+################################################################
 # Section Types
 
 class LfpHeader(LfpSection):

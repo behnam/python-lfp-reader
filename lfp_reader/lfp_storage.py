@@ -29,7 +29,7 @@ from operator import itemgetter
 import lfp_file
 
 
-################################
+################################################################
 # Storage file
 
 class LfpStorageError(lfp_file.LfpGenericError):
@@ -46,13 +46,13 @@ class LfpStorageFile(lfp_file.LfpGenericFile):
     def files_sorted(self):
         return sorted(self.files.iteritems(), key=itemgetter(0))
 
-    ################
+    ################################
     # Internals
 
     def __repr__(self):
         return "LfpStorageFile(%s, %s, %d chunks)" % (self.header, self.meta, len(self.chunks))
 
-    ################
+    ################################
     # Loading
 
     def process(self):
@@ -63,7 +63,7 @@ class LfpStorageFile(lfp_file.LfpGenericFile):
         except KeyError:
             raise LfpStorageError("Not a valid LFP Storage file")
 
-    ################
+    ################################
     # Exporting
 
     def export(self):

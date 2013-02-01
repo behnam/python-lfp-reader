@@ -51,7 +51,7 @@ def _check_gst_h264_splitter_module():
         raise RuntimeError("Cannot find GStreamer Python library")
 
 
-################################
+################################################################
 # Picture file
 
 class LfpPictureError(lfp_file.LfpGenericError):
@@ -88,7 +88,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
     """Load an LFP Picture file and read the data chunks on-demand
     """
 
-    ################
+    ################################
     # Internals
 
     def __init__(self, file_path):
@@ -96,6 +96,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         self._frame = None
         self._refocus_stack = None
         self._parallax_stack = None
+        self._pil_cache = {}
 
     def __repr__(self):
         version = self.meta.content['version']
@@ -106,7 +107,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
             'True' if self._frame else 'False'
             ))
 
-    ################
+    ################################
     # Loading
 
     def process(self):
@@ -211,8 +212,8 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                                 data=images_data[id])
                                 for id, pimg in enumerate(block_of_images['metadataArray']) }
 
-                        max_coord_x_i = max(parallax_images, key=lambda i: parallax_images[i].coord.x)
-                        max_coord_y_i = max(parallax_images, key=lambda i: parallax_images[i].coord.y)
+                        max_coord_x_i = max(parallax_images, key=lambda id: parallax_images[id].coord.x)
+                        max_coord_y_i = max(parallax_images, key=lambda id: parallax_images[id].coord.y)
                         default_dimensions = accel_content['displayParameters']['displayDimensions']['value']
                         self._parallax_stack = ParallaxStack(
                             default_width    = default_dimensions['width'],
@@ -244,7 +245,8 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
             raise LfpPictureError("%s: Cannot find parallax data in LFP Picture file" % self.file_path)
         return self._parallax_stack
 
-    ################
+
+    ################################
     # Exporting
 
     def export(self):
@@ -281,7 +283,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                 self.export_write(r_image_name, pimg.representation, pimg.data)
 
     def export_all_focused(self, export_format='jpeg'):
-        pil_all_focused_image = self.get_pil_all_focused_image()
+        pil_all_focused_image = self.get_pil_image('all_focused')
         output = StringIO()
         pil_all_focused_image.save(output, export_format)
         self.export_write('all_focused', export_format, output.getvalue())
@@ -296,7 +298,8 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
             txt += "\r\n"
         return txt
 
-    ################
+
+    ################################
     # Printing
 
     def print_info(self):
@@ -331,39 +334,65 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         else:
             print "\tNone"
 
-    ################
+
+    ################################
+    # Processing, Common
+
+    def get_pil_image(self, group, image_id=None):
+        """Cache and return a PIL.Image instances
+
+        Parameter `group' shall be one of ('refocus', 'parallax', 'all_focused')
+        """
+        _check_pil_module()
+        if group not in ('refocus', 'parallax', 'all_focused'):
+            raise KeyError('Unknown PIL cache group: %s' % group)
+        cache = self._pil_cache
+        if group not in cache:
+            cache[group] = {}
+
+        if group == 'all_focused' and image_id is None:
+            image_id = '_'
+            if image_id not in cache[group]:
+                cache[group][image_id] = self._gen_pil_all_focused_image()
+            return cache[group][image_id]
+
+        if group == 'refocus' and image_id is not None:
+            img = self.get_refocus_stack().refocus_images[image_id]
+        elif group == 'parallax' and image_id is not None:
+            img = self.get_parallax_stack().parallax_images[image_id]
+        else:
+            raise KeyError('Invalid image_id: %s' % image_id)
+
+        if image_id not in cache[group]:
+            data = img.data if img.data else img.chunk.data
+            cache[group][image_id] = PIL.open(StringIO(data))
+        return cache[group][image_id]
+
+
+    ################################
     # Processing Refocus Stack
 
     def find_closest_refocus_image(self, x_f=.5, y_f=.5):
         """Parameters `x_f` and `y_f` are floats in range [0, 1)
         """
         rstk = self.get_refocus_stack()
-        return self.find_closest_refocus_image_lut_idx(
-                int(math.floor(rstk.depth_lut.width  * x_f)),
-                int(math.floor(rstk.depth_lut.height * y_f)))
+        return self.find_closest_refocus_image_by_lut_idx(
+                x_f * rstk.depth_lut.width,
+                y_f * rstk.depth_lut.height)
 
-    def find_closest_refocus_image_lut_idx(self, ti, tj):
+    def find_closest_refocus_image_by_lut_idx(self, ti, tj):
         """Parameters `ti` and `tj` are indices of the depth look-up table
         """
         rstk = self.get_refocus_stack()
+        ti = max(0, min(int(math.floor(ti)), rstk.depth_lut.width-1))
+        tj = max(0, min(int(math.floor(tj)), rstk.depth_lut.height-1))
         taget_lambda = rstk.depth_lut.table[ti][tj]
-        closest_image, min_lambda_dist = None, sys.maxint
-        for id, rimg in rstk.refocus_images.iteritems():
-            lambda_dist = math.fabs(rimg.lambda_ - taget_lambda)
-            if lambda_dist < min_lambda_dist:
-                closest_image, min_lambda_dist = rimg, lambda_dist
-        return closest_image
+        closest_image_id = min(rstk.refocus_images,
+                key=lambda id: math.fabs(rstk.refocus_images[id].lambda_ - taget_lambda))
+        return rstk.refocus_images[closest_image_id]
 
-    def get_pil_refocus_images(self):
-        """Returns a list of PIL.Image instances
-        """
-        _check_pil_module()
-        rstk = self.get_refocus_stack()
-        return { id: PIL.open(StringIO(rimg.data if rimg.data else rimg.chunk.data))
-            for id, rimg in rstk.refocus_images.iteritems() }
-
-    def get_pil_all_focused_image(self):
-        """Returns PIL.Image instance collaged from refocus images
+    def _gen_pil_all_focused_image(self):
+        """Return PIL.Image instance collaged from refocus images
         """
         _check_pil_module()
         rstk = self.get_refocus_stack()
@@ -374,7 +403,6 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
 
         init_data = r_images[0].data if r_images[0].data else r_images[0].chunk.data
         pil_all_focused_image = PIL.open(StringIO(init_data))
-        pil_images = self.get_pil_refocus_images()
 
         for i in xrange(depth_lut.width):
             for j in xrange(depth_lut.height):
@@ -382,13 +410,14 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                        int(math.floor(height * j / depth_lut.height)),
                        int(math.floor(width  * (i+1) / depth_lut.width)),
                        int(math.floor(height * (j+1) / depth_lut.height)))
-                closest_image = self.find_closest_refocus_image_lut_idx(i, j)
-                pil_all_focused = pil_images[closest_image.id]
+                closest_image = self.find_closest_refocus_image_by_lut_idx(i, j)
+                pil_all_focused = self.get_pil_image('refocus', closest_image.id)
                 piece = pil_all_focused.crop(box)
                 pil_all_focused_image.paste(piece, box)
         return pil_all_focused_image
 
-    ################
+
+    ################################
     # Processing Parallax Stack
 
     def find_closest_parallax_image(self, x_f=.5, y_f=.5):
@@ -404,12 +433,4 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
             if euclidean_dist < min_euclidean_dist:
                 closest_image, min_euclidean_dist = pimg, euclidean_dist
         return closest_image
-
-    def get_pil_parallax_images(self):
-        """Returns a list of PIL.Image instances
-        """
-        _check_pil_module()
-        pstk = self.get_parallax_stack()
-        return { id: PIL.open(StringIO(pimg.data if pimg.data else pimg.chunk.data))
-            for id, pimg in pstk.parallax_images.iteritems() }
 

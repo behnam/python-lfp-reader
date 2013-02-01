@@ -31,7 +31,7 @@ import json
 import lfp_section
 
 
-################################
+################################################################
 # General
 
 class LfpGenericError(Exception):
@@ -42,7 +42,7 @@ class LfpGenericFile:
     """Generic class for any LFP file
     """
 
-    ################
+    ################################
     # Internals
 
     def __init__(self, file_path):
@@ -68,7 +68,7 @@ class LfpGenericFile:
     def chunks_sorted(self):
         return sorted(self.chunks.iteritems(), key=itemgetter(0))
 
-    ################
+    ################################
     # Loading
 
     def load(self):
@@ -95,7 +95,7 @@ class LfpGenericFile:
         """Subclasses shall implement this function"""
         pass
 
-    ################
+    ################################
     # Exporting
 
     def export(self):
@@ -125,7 +125,7 @@ class LfpGenericFile:
             exp_file.write(exp_data)
 
 
-    ################
+    ################################
     # Printing
 
     def print_info(self):

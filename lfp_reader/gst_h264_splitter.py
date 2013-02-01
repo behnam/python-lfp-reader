@@ -28,7 +28,7 @@ pygst.require("0.10")
 import gst
 
 
-################################
+################################################################
 # Memory Source
 
 class MemSrc(gst.BaseSrc):
@@ -59,7 +59,7 @@ class MemSrc(gst.BaseSrc):
 gobject.type_register(MemSrc)
 
 
-################################
+################################################################
 # Multi Memory Sink
 
 class MultiMemSink(gst.BaseSink):
@@ -90,7 +90,7 @@ class MultiMemSink(gst.BaseSink):
 gobject.type_register(MultiMemSink)
 
 
-################################
+################################################################
 # Splitter
 
 class H246Splitter:
@@ -147,7 +147,7 @@ class H246Splitter:
         return True
 
 
-################################
+################################################################
 # Test
 
 def _split_file(file_path, image_format='jpeg'):
@@ -156,7 +156,7 @@ def _split_file(file_path, image_format='jpeg'):
     splitter = H246Splitter(input_data, image_format)
     images = splitter.get_images()
     for idx, img in enumerate(images):
-        output_name = '%s-%05d.%s' % (file_path, idx, image_format)
+        output_name = '%s__%05d.%s' % (file_path, idx, image_format)
         print "Create JPEG file: %s" % output_name
         with file(output_name, 'w') as f:
             f.write(img)
