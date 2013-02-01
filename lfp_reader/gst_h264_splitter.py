@@ -32,6 +32,8 @@ import gst
 # Memory Source
 
 class MemSrc(gst.BaseSrc):
+    """A GStreamer Source reading from memory
+    """
 
     __gsttemplates__ = (
             gst.PadTemplate("src",
@@ -48,9 +50,11 @@ class MemSrc(gst.BaseSrc):
     def set_property(self, name, value):
         if name == 'data':
             self._data = value
+            self._data_len = len(value)
 
     def do_create(self, offset, size):
-        if self._data and offset < len(self._data):
+        size = 4096 * 2**4
+        if self._data and offset < self._data_len:
             blob = self._data[offset:offset+size]
             return gst.FLOW_OK, gst.Buffer(blob)
         else:
@@ -63,6 +67,8 @@ gobject.type_register(MemSrc)
 # Multi Memory Sink
 
 class MultiMemSink(gst.BaseSink):
+    """A GStreamer Sink writing buffers to a list in memory
+    """
 
     __gsttemplates__ = (
             gst.PadTemplate("sink",
@@ -73,19 +79,16 @@ class MultiMemSink(gst.BaseSink):
 
     def __init__(self, name):
         self.__gobject_init__()
-        self._data = []
+        self._data_list = []
         self.set_name(name)
 
     def get_property(self, name):
-        if name == 'data':
-            return self._data
+        if name == 'data_list':
+            return self._data_list
 
     def do_render(self, bfr):
-        if self._data is not None:
-            self._data.append(bfr)
-            return gst.FLOW_OK
-        else:
-            return gst.FLOW_UNEXPECTED
+        self._data_list.append(bfr)
+        return gst.FLOW_OK
 
 gobject.type_register(MultiMemSink)
 
@@ -94,14 +97,19 @@ gobject.type_register(MultiMemSink)
 # Splitter
 
 class H246Splitter:
+    """A standalone H264 video splitter
+
+    Supported export image formats: JPEG, PNG
+    """
+
     mainloop = gobject.MainLoop()
 
     def __init__(self, input_data, image_format='jpeg'):
         if image_format not in ('jpeg', 'png'):
             raise Exception("Format not supported: %s" % image_format)
 
-        self.input_data = input_data
-        self.images = None
+        self._input_data = input_data
+        self._output_images = None
 
         # Create pipeline
         self.pipeline_desc = ("""
@@ -117,7 +125,7 @@ class H246Splitter:
 
         # Set source
         self.mem_src = MemSrc('my_src')
-        self.mem_src.set_property('data', input_data)
+        self.mem_src.set_property('data', self._input_data)
         self.pipeline.add(self.mem_src)
         self.mem_src.link(self.pipeline.get_by_name('head'))
 
@@ -126,25 +134,25 @@ class H246Splitter:
         self.pipeline.add(self.multi_mem_sink)
         self.pipeline.get_by_name('tail').link(self.multi_mem_sink)
 
-    #FIXME Find a way to not intrupt gobject mainloop if already exists
-
     def get_images(self):
-        if not self.images:
+        if not self._output_images:
             self.pipeline.set_state(gst.STATE_PLAYING)
-            self.pipeline.get_bus().add_watch(self.bus_event)
+            bus = self.pipeline.get_bus()
+            bus.add_signal_watch()
+            bus.connect("message::eos",   self._cb_bus_eos)
+            bus.connect("message::error", self._cb_bus_error)
             self.mainloop.run()
             self.pipeline.set_state(gst.STATE_NULL)
-            self.images = self.multi_mem_sink.get_property('data')
-        return self.images
+            self._output_images = self.multi_mem_sink.get_property('data_list')
+        return self._output_images
 
-    def bus_event(self, bus, msg):
-        if msg.type == gst.MESSAGE_EOS:
-            self.mainloop.quit()
-        elif msg.type == gst.MESSAGE_ERROR:
-            err, debug = msg.parse_error()
-            self.mainloop.quit()
-            raise "Error: %s" % err, debug
-        return True
+    def _cb_bus_eos(self, bus, msg):
+        self.mainloop.quit()
+
+    def _cb_bus_error(self, bus, msg):
+        err, debug = msg.parse_error()
+        self.mainloop.quit()
+        raise Exception("Error: %s" % err, debug)
 
 
 ################################################################

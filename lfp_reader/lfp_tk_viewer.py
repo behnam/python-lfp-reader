@@ -45,77 +45,126 @@ class LfpTkViewer():
     """
 
     def __init__(self, lfp_picture,
-            title="Light-Field Picture",
-            title_pattern="%s [Python LFP Reader]",
-            init_size=(648, 648)
-            ):
-        self._lfp = lfp_picture
-        self._title = title if not title_pattern else (title_pattern % title)
-        self._set_active_size(init_size)
+                 title="Light-Field Picture",
+                 title_pattern="%s [Python LFP Reader]",
+                 init_size=(648, 648)):
+        self._title_pattern = title_pattern
+        self._active_size = None
         self._active_pil_image = None
-        self._resized_tkp_image = None
 
-        # Create tk window
-        self._tkroot = Tkinter.Tk()
-        self._tkroot.wm_title(self._title)
-        self._tkroot.protocol("WM_DELETE_WINDOW", self.quit)
-        self._tkroot.geometry("%dx%d" % self._active_size)
-        self._tkroot.bind('<Configure>', self._cb_resize)
+        # Set LFP Picture
+        self._lfp = lfp_picture
+        self._preload_lfp_pil_images()
+
+        # Show tk window
+        self._tk_root = Tkinter.Tk()
+        self._tk_root.protocol("WM_DELETE_WINDOW", self.quit)
+        self._tk_root.geometry("%dx%d" % init_size)
+        self._tk_root.bind('<Configure>', self._cb_resize)
+        self.set_title(title)
 
         # Create tk picture
-        self._tkpic = Tkinter.Label(self._tkroot)
-        self._tkpic.bind("<Button-1>", self._cb_refocus)
-        self._tkpic.bind("<B1-Motion>", self._cb_refocus)
-        self._tkpic.bind("<Button-2>", self._cb_all_focused)
-        self._tkpic.bind("<B2-Motion>", self._cb_all_focused)
-        self._tkpic.bind("<Button-3>", self._cb_parallax)
-        self._tkpic.bind("<B3-Motion>", self._cb_parallax)
-        self._tkpic.pack()
+        self._tk_pic = Tkinter.Label(self._tk_root)
+        if self._lfp.has_refocus_stack():
+            self._tk_pic.bind("<Button-1>",  self._cb_refocus)
+            self._tk_pic.bind("<B1-Motion>", self._cb_refocus)
+            self._tk_pic.bind("<Button-2>",  self._cb_all_focused)
+            self._tk_pic.bind("<B2-Motion>", self._cb_all_focused)
+        if self._lfp.has_parallax_stack():
+            self._tk_pic.bind("<Button-3>",  self._cb_parallax)
+            self._tk_pic.bind("<B3-Motion>", self._cb_parallax)
+        self._tk_pic.pack()
 
         # Verify and init view
-        if True:
-            #todo support non-refocus-based LFP pictures
-            self._lfp.get_refocus_stack()
+        self.set_active_size(init_size)
+        if self._lfp.has_refocus_stack():
             self.do_refocus_at(.5, .5)
+        elif self._lfp.has_parallax_stack():
+            self.do_parallax_at(.5, .5)
+        elif self._lfp.has_frame():
+            #todo Processing raw data!
+            pass
+        else:
+            raise Exception("Unsupported LFP Picture file")
 
-        self._tkroot.mainloop()
+        # Main loop
+        try:
+            self._tk_root.mainloop()
+        except KeyboardInterrupt:
+            self.quit()
 
     def quit(self):
-        self._tkroot.destroy()
-        self._tkroot.quit()
+        self._tk_root.destroy()
+        self._tk_root.quit()
 
 
     ################################
-    # Display Image
+    # PIL
+
+    def _preload_lfp_pil_images(self):
+        if self._lfp.has_refocus_stack():
+            for id in self._lfp.get_refocus_stack().refocus_images:
+                self._lfp.get_pil_image('refocus', id)
+            self._lfp.get_pil_image('all_focused')
+        if self._lfp.has_parallax_stack():
+            for id in self._lfp.get_parallax_stack().parallax_images:
+                self._lfp.get_pil_image('parallax', id)
+
+    ################################
+    # Title
+
+    def set_title(self, title):
+        if self._title_pattern:
+            title = self._title_pattern % title
+        self._tk_root.wm_title(title)
+
+    ################################
+    # Size
+
+    def set_active_size(self, size):
+        if size == self._active_size:
+            return
+        self._active_size = size
+        self._reset_caches()
+        self._redraw_active_image()
 
     def _cb_resize(self, event):
-        self._set_active_size((event.width, event.height))
-        self._redraw_active_image()
+        new_size = (min(event.width, event.height), )*2
+        self.set_active_size(new_size)
 
-    def _set_active_size(self, size):
-        self._active_size = (min(size[0], size[1]), )*2
-        self._resized_pil_cache = {}
 
-    def show_image_by_group_id(self, group, image_id):
+    ################################
+    # Image
+
+    def set_active_image(self, group, image_id):
         pil_image = self._lfp.get_pil_image(group, image_id)
-        return self.show_pil_image(pil_image)
+        self.set_active_pil_image(pil_image)
 
-    def show_pil_image(self, pil_image):
-        if pil_image == self._active_pil_image: return False
-        self._active_pil_image  = pil_image
+    def set_active_pil_image(self, pil_image=None):
+        if self._active_pil_image == pil_image:
+            return
+        self._active_pil_image = pil_image
         self._redraw_active_image()
-        return True
 
     def _redraw_active_image(self):
-        self._resized_pil_image = self._get_resized_pil_image(self._active_pil_image)
-        '''
-        if not hasattr(self, '_resized_tkp_image'):
-            self._resized_tkp_image = TkPIL.PhotoImage(self._resized_pil_image)
-        else:
-            self._resized_tkp_image.paste(self._resized_pil_image)
-        '''
-        self._resized_tkp_image = TkPIL.PhotoImage(self._resized_pil_image)
-        self._tkpic.configure(image=self._resized_tkp_image)
+        if not self._active_pil_image:
+            return
+        tkp_image = self._get_resized_tkp_image(self._active_pil_image)
+        self._tk_pic.configure(image=tkp_image)
+
+
+    ################################
+    # PIL.Image/TK.PhotoImage Caches
+
+    def _reset_caches(self):
+        self._resized_pil_cache = {}
+        self._resized_tkp_cache = {}
+
+    def _get_resized_tkp_image(self, pil_image):
+        if pil_image not in self._resized_tkp_cache:
+            resized_pil_image = self._get_resized_pil_image(pil_image)
+            self._resized_tkp_cache[pil_image] = TkPIL.PhotoImage(resized_pil_image)
+        return self._resized_tkp_cache[pil_image]
 
     def _get_resized_pil_image(self, pil_image):
         if pil_image not in self._resized_pil_cache:
@@ -127,23 +176,20 @@ class LfpTkViewer():
     # Refocus
 
     def do_refocus_at(self, x_f, y_f):
-        try:
-            closest_refocus = self._lfp.find_closest_refocus_image(x_f, y_f)
-        except:
-            return False
-        return self.show_image_by_group_id('refocus', closest_refocus.id)
+        closest_refocus = self._lfp.find_closest_refocus_image(x_f, y_f)
+        self.set_active_image('refocus', closest_refocus.id)
 
     def _cb_refocus(self, event):
-        coords_f = [event.x / self._active_size[0],
-                    event.y / self._active_size[1]]
-        self.do_refocus_at(*coords_f)
+        self.do_refocus_at(
+                event.x / self._active_size[0],
+                event.y / self._active_size[1])
 
 
     ################################
     # All-Focused
 
     def do_all_focused(self):
-        return self.show_image_by_group_id('all_focused', None)
+        self.set_active_image('all_focused', None)
 
     def _cb_all_focused(self, event):
         self.do_all_focused()
@@ -153,11 +199,8 @@ class LfpTkViewer():
     # Parallax
 
     def do_parallax_at(self, x_f, y_f):
-        try:
-            closest_parallax = self._lfp.find_closest_parallax_image(x_f, y_f)
-        except:
-            return False
-        return self.show_image_by_group_id('parallax', closest_parallax.id)
+        closest_parallax = self._lfp.find_closest_parallax_image(x_f, y_f)
+        self.set_active_image('parallax', closest_parallax.id)
 
     def _cb_parallax(self, event):
         self.do_parallax_at(
