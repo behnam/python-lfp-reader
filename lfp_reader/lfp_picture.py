@@ -39,7 +39,7 @@ except ImportError:
     PIL = None
 def _check_pil_module():
     if PIL is None:
-        raise RuntimeError("Cannot find Python Imaging Library (PIL)")
+        raise RuntimeError("Cannot find Python Imaging Library (PIL or Pillow)")
 
 # GStreamer Python
 try:

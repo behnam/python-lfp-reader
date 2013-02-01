@@ -61,6 +61,7 @@ class LfpPictureViewer():
         #todo self._tkroot.bind('<Configure>', self.resize)
 
         self._lfp = LfpPictureFile(self._lfp_path).load()
+        self._lfp.get_refocus_stack()
 
         # Create picture gui object
         self._pic = Tkinter.Label(self._tkroot)
