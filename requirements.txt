@@ -1,0 +1,2 @@
+lfp-reader
+Pillow
