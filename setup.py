@@ -24,7 +24,7 @@
 from distutils.core import setup
 
 
-setup(name="lfp-reader", version="1.4.5",
+setup(name="lfp-reader", version="1.4.6",
         description="LFP (Light Field Photography) File Reader",
         long_description=open('README.rst').read(),
 
@@ -64,7 +64,8 @@ setup(name="lfp-reader", version="1.4.5",
             ],
 
         data_files=[
-            ('lfp_reader', ('COPYING.txt', 'README.rst')),
+            ('lib/python-lfp-reader',
+                ('COPYING.txt', 'README.rst')),
             ],
 
         install_requires=[
