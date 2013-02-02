@@ -169,7 +169,6 @@ The main classes in the ``lfp_reader`` package are:
 - ``LfpGenericFile``
 - ``LfpPictureFile``
 - ``LfpStorageFile``
-- ``LfpTkViewer``
 
 
 Code License

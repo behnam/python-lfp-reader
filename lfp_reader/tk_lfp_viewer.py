@@ -24,6 +24,7 @@
 """An LFP Picture Viewer using Tkinter GUI library
 """
 
+
 from __future__ import division
 import sys
 import os.path
@@ -44,7 +45,7 @@ from lfp_reader import LfpPictureFile
 
 ################################################################
 
-class LfpTkViewer():
+class TkLfpViewer():
     """View and refocues Processed LFP Picture files
     """
 
@@ -52,6 +53,7 @@ class LfpTkViewer():
             lfp_paths=None,
             title_pattern="{file_path}   ({index}/{count})   Python LFP Reader",
             init_size=(648, 648)):
+        _check_pil_module()
         self._title_pattern = title_pattern
         self._lfp_picture_cache = {}
         self._lfp = None

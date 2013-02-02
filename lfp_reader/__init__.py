@@ -56,7 +56,6 @@ The main classes in the ``lfp_reader`` package are:
 - ``LfpGenericFile``
 - ``LfpPictureFile``
 - ``LfpStorageFile``
-- ``LfpTkViewer``
 
 
 Legal Notice
@@ -80,7 +79,6 @@ Please report any problems at <https://github.com/behnam/python-lfp-reader/issue
 from lfp_file      import LfpGenericFile, LfpGenericError
 from lfp_picture   import LfpPictureFile, LfpPictureError
 from lfp_storage   import LfpStorageFile, LfpStorageError
-from lfp_tk_viewer import LfpTkViewer
 
 
 __version__     = "2.0"

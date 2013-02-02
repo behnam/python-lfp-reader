@@ -31,11 +31,11 @@ from cStringIO import StringIO
 
 import Tkinter, tkFileDialog
 
-from lfp_reader import LfpTkViewer
+from lfp_reader.tk_lfp_viewer import TkLfpViewer
 
 
 def main(lfp_paths):
-    LfpTkViewer(lfp_paths)
+    TkLfpViewer(lfp_paths)
 
 
 def usage(errcode=0, of=sys.stderr):

@@ -350,7 +350,6 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
             print "\t%-20s\t%12d" % ("default_height:", pstk.height)
             print "\tcoordinates:"
             print "\t    [",
-            #XXX
             for id, pimg in pstk.parallax_images.iteritems():
                 print "(%.2f, %.2f)" % pimg.coord,
             print "]"
