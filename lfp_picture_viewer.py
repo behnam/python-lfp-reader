@@ -31,27 +31,21 @@ from cStringIO import StringIO
 
 import Tkinter, tkFileDialog
 
-from lfp_reader import LfpPictureFile, LfpTkViewer
+from lfp_reader import LfpTkViewer
 
 
 def main(lfp_paths):
     if not lfp_paths:
         tkroot = Tkinter.Tk()
+        print "Select an LFP Picture file..."
         lfp_path = tkFileDialog.askopenfilename(defaultextension="lfp")
         tkroot.destroy()
         if not lfp_path:
             sys.exit(3)
         lfp_paths = [lfp_path]
 
-    for idx, lfp_path in enumerate(lfp_paths):
-        if idx > 0: print
-        if lfp_path is not None:
-            print "LFP Picture file: %s" % lfp_path
-        else:
-            print "Select an LFP Picture file..."
-        lfp = LfpPictureFile(lfp_path)
-        lfp.load()
-        LfpTkViewer(lfp, title=lfp.file_name)
+    for lfp_path in lfp_paths:
+        LfpTkViewer(lfp_path=lfp_path)
 
 
 def usage(errcode=0, of=sys.stderr):

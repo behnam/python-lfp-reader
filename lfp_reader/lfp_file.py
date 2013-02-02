@@ -50,6 +50,7 @@ class LfpGenericFile:
         self.header = None
         self.meta = None
         self.chunks = {}
+        self._is_loaded = False
         self._file_path = file_path
         self._file_size = os.stat(file_path).st_size
         self._file = open(self._file_path, 'rb')
@@ -77,6 +78,8 @@ class LfpGenericFile:
     # Loading
 
     def load(self):
+        if self._is_loaded:
+            return
         try:
             self._load_meta()
             self._load_chunks()
@@ -84,6 +87,8 @@ class LfpGenericFile:
             raise LfpGenericError("Not a valid LFP file")
 
         self.process()
+
+        self._is_loaded = True
         return self
 
     def _load_meta(self):

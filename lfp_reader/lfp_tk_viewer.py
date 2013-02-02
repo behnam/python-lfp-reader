@@ -25,8 +25,9 @@
 """
 
 from __future__ import division
+import os.path
 
-import Tkinter
+import Tkinter, tkFileDialog
 
 # Python Imageing Library
 try:
@@ -37,6 +38,8 @@ def _check_pil_module():
     if PIL is None:
         raise RuntimeError("Cannot find Python Imaging Library (PIL or Pillow)")
 
+from lfp_reader import LfpPictureFile
+
 
 ################################################################
 
@@ -44,17 +47,15 @@ class LfpTkViewer():
     """View and refocues Processed LFP Picture files (*-stk.lfp)
     """
 
-    def __init__(self, lfp_picture,
-                 title="Light-Field Picture",
-                 title_pattern="%s [Python LFP Reader]",
-                 init_size=(648, 648)):
+    def __init__(self,
+            lfp_picture=None,
+            lfp_path=None,
+            title_pattern="%s - Python LFP Reader",
+            init_size=(648, 648)):
         self._title_pattern = title_pattern
+        self._lfp = None
         self._active_size = None
         self._active_pil_image = None
-
-        # Set LFP Picture
-        self._lfp = lfp_picture
-        self._preload_lfp_pil_images()
 
         # Show tk window
         self._tk_root = Tkinter.Tk()
@@ -64,31 +65,27 @@ class LfpTkViewer():
         self._tk_root.bind('<Configure>', self._cb_resize)
         self._tk_root.bind('<Control-w>', self.quit)
         self._tk_root.bind('<Control-q>', self.quit)
-        self.set_title(title)
+        self._tk_root.bind("<Escape>",    self.quit)
+        self._tk_root.bind("<Control-s>", self._cb_save_active_image)
+        self._tk_root.bind("<Return>",    self._cb_save_active_image)
+        self._tk_root.bind("<Control-a>", self._cb_show_all_focused)
+        self._tk_root.bind("<a>",         self._cb_show_all_focused)
+        self.set_title("<none>")
 
         # Create tk picture
         self._tk_pic = Tkinter.Label(self._tk_root)
-        if self._lfp.has_refocus_stack():
-            self._tk_pic.bind("<Button-1>",  self._cb_refocus)
-            self._tk_pic.bind("<B1-Motion>", self._cb_refocus)
-            self._tk_pic.bind("<Button-2>",  self._cb_all_focused)
-            self._tk_pic.bind("<B2-Motion>", self._cb_all_focused)
-        if self._lfp.has_parallax_stack():
-            self._tk_pic.bind("<Button-3>",  self._cb_parallax)
-            self._tk_pic.bind("<B3-Motion>", self._cb_parallax)
         self._tk_pic.pack()
+        self._tk_pic.bind("<Button-1>",  self._cb_show_refocus)
+        self._tk_pic.bind("<B1-Motion>", self._cb_show_refocus)
+        self._tk_pic.bind("<Button-2>",  self._cb_show_all_focused)
+        self._tk_pic.bind("<Button-3>",  self._cb_show_parallax)
+        self._tk_pic.bind("<B3-Motion>", self._cb_show_parallax)
 
-        # Verify and init view
         self.set_active_size(init_size)
-        if self._lfp.has_refocus_stack():
-            self.do_refocus_at(.5, .5)
-        elif self._lfp.has_parallax_stack():
-            self.do_parallax_at(.5, .5)
-        elif self._lfp.has_frame():
-            #todo Processing raw data!
-            pass
+        if lfp_picture:
+            self.set_lfp(lfp_picture)
         else:
-            raise Exception("Unsupported LFP Picture file")
+            self.set_lfp_path(lfp_path)
 
         # Main loop
         self._tk_root.mainloop()
@@ -100,6 +97,27 @@ class LfpTkViewer():
 
     ################################
     # PIL
+
+    def set_lfp_path(self, lfp_path):
+        self.set_lfp(LfpPictureFile(lfp_path))
+
+    def set_lfp(self, lfp_picture):
+        self._lfp = lfp_picture
+        self._lfp.load()
+        self._preload_lfp_pil_images()
+        self.set_title(self._lfp.file_path)
+
+        # Verify and init view
+        if self._lfp.has_refocus_stack():
+            self.show_refocus_at(.5, .5)
+        elif self._lfp.has_parallax_stack():
+            self.show_parallax_at(.5, .5)
+        else:
+            raise Exception("Unsupported LFP Picture file")
+        '''
+        elif self._lfp.has_frame():
+            #todo Processing raw data!
+        '''
 
     def _preload_lfp_pil_images(self):
         if self._lfp.has_refocus_stack():
@@ -134,7 +152,7 @@ class LfpTkViewer():
 
 
     ################################
-    # Image
+    # Active Image
 
     def set_active_image(self, group, image_id):
         pil_image = self._lfp.get_pil_image(group, image_id)
@@ -151,6 +169,24 @@ class LfpTkViewer():
             return
         tkp_image = self._get_resized_tkp_image(self._active_pil_image)
         self._tk_pic.configure(image=tkp_image)
+
+    def save_active_image(self, exp_path=None, exp_format='jpeg'):
+        if not exp_path:
+            exp_i = 0
+            while os.path.exists(self._lfp.get_export_path('%03d'%exp_i, exp_format)):
+                exp_i += 1
+            exp_path = self._lfp.get_export_path('%03d'%exp_i, exp_format)
+        print "Save image to %s" % exp_path
+        self._active_pil_image.save(exp_path, exp_format)
+
+    def _cb_save_active_image(self, event):
+        if event.keysym == 'Return':
+            exp_path = None
+        else:
+            exp_path = tkFileDialog.asksaveasfilename(defaultextension=".jpeg")
+            if not exp_path:
+                return
+        self.save_active_image(exp_path)
 
 
     ################################
@@ -175,12 +211,14 @@ class LfpTkViewer():
     ################################
     # Refocus
 
-    def do_refocus_at(self, x_f, y_f):
+    def show_refocus_at(self, x_f, y_f):
+        if not self._lfp or not self._lfp.has_refocus_stack():
+            return
         closest_refocus = self._lfp.find_closest_refocus_image(x_f, y_f)
         self.set_active_image('refocus', closest_refocus.id)
 
-    def _cb_refocus(self, event):
-        self.do_refocus_at(
+    def _cb_show_refocus(self, event):
+        self.show_refocus_at(
                 event.x / self._active_size[0],
                 event.y / self._active_size[1])
 
@@ -188,22 +226,26 @@ class LfpTkViewer():
     ################################
     # All-Focused
 
-    def do_all_focused(self):
+    def show_all_focused(self):
+        if not self._lfp or not self._lfp.has_refocus_stack():
+            return
         self.set_active_image('all_focused', None)
 
-    def _cb_all_focused(self, event):
-        self.do_all_focused()
+    def _cb_show_all_focused(self, event):
+        self.show_all_focused()
 
 
     ################################
     # Parallax
 
-    def do_parallax_at(self, x_f, y_f):
+    def show_parallax_at(self, x_f, y_f):
+        if not self._lfp or not self._lfp.has_parallax_stack():
+            return
         closest_parallax = self._lfp.find_closest_parallax_image(x_f, y_f)
         self.set_active_image('parallax', closest_parallax.id)
 
-    def _cb_parallax(self, event):
-        self.do_parallax_at(
+    def _cb_show_parallax(self, event):
+        self.show_parallax_at(
                 event.x / self._active_size[0],
                 event.y / self._active_size[1])
 
