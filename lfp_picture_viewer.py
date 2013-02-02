@@ -35,20 +35,7 @@ from lfp_reader import LfpTkViewer
 
 
 def main(lfp_paths):
-    if not lfp_paths:
-        tkroot = Tkinter.Tk()
-        print "Select an LFP Picture file..."
-        lfp_path = tkFileDialog.askopenfilename(
-                title="Open an LFP Picture...",
-                filetypes=[ ('LFP Picture', '.lfp'), ],
-                defaultextension=".lfp")
-        tkroot.destroy()
-        if not lfp_path:
-            sys.exit(3)
-        lfp_paths = [lfp_path]
-
-    for lfp_path in lfp_paths:
-        LfpTkViewer(lfp_path=lfp_path)
+    LfpTkViewer(lfp_paths)
 
 
 def usage(errcode=0, of=sys.stderr):

@@ -423,6 +423,15 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                 pil_all_focused_image.paste(piece, box)
         return pil_all_focused_image
 
+    def preload_pil_images(self):
+        if self.has_refocus_stack():
+            for id in self.get_refocus_stack().refocus_images:
+                self.get_pil_image('refocus', id)
+            self.get_pil_image('all_focused')
+        if self.has_parallax_stack():
+            for id in self.get_parallax_stack().parallax_images:
+                self.get_pil_image('parallax', id)
+
 
     ################################
     # Processing Parallax Stack

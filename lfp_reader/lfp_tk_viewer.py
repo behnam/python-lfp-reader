@@ -45,31 +45,44 @@ from lfp_reader import LfpPictureFile
 ################################################################
 
 class LfpTkViewer():
-    """View and refocues Processed LFP Picture files (*-stk.lfp)
+    """View and refocues Processed LFP Picture files
     """
 
     def __init__(self,
-            lfp_picture=None,
-            lfp_path=None,
-            title_pattern="%s - Python LFP Reader",
+            lfp_paths=None,
+            title_pattern="{file_path}   ({index}/{count})   Python LFP Reader",
             init_size=(648, 648)):
         self._title_pattern = title_pattern
         self._lfp = None
         self._active_size = None
         self._active_pil_image = None
+        self._lfp_picture_cache = {}
 
         # Show tk window
         self._tk_root = Tkinter.Tk()
         self._tk_root.protocol("WM_DELETE_WINDOW", self.quit)
         self._tk_root.geometry("%dx%d" % init_size)
         self._tk_root.configure(background='black')
+        self._tk_root.wm_title("Python LFP Reader")
+
+        # window bindings
         self._tk_root.bind('<Configure>', self._cb_resize)
         self._tk_root.bind('<Control-w>', self.quit)
         self._tk_root.bind('<Control-q>', self.quit_force)
+
+        # navigation bindings
+        self._tk_root.bind("<Right>",     self.next_lfp)
+        self._tk_root.bind("<n>",         self.next_lfp)
+        self._tk_root.bind("<space>",     self.next_lfp)
+
+        self._tk_root.bind("<Left>",      self.prev_lfp)
+        self._tk_root.bind("<p>",         self.prev_lfp)
+        self._tk_root.bind("<BackSpace>", self.prev_lfp)
+
+        # image bindings
+        self._tk_root.bind("<a>",         self._cb_show_all_focused)
         self._tk_root.bind("<Return>",    self._cb_save_active_image)
         self._tk_root.bind("<Control-s>", self._cb_save_active_image_as)
-        self._tk_root.bind("<a>",         self._cb_show_all_focused)
-        self.set_title("<none>")
 
         # Create tk picture
         self._tk_pic = Tkinter.Label(self._tk_root)
@@ -81,10 +94,7 @@ class LfpTkViewer():
         self._tk_pic.bind("<B3-Motion>", self._cb_show_parallax)
 
         self.set_active_size(init_size)
-        if lfp_picture:
-            self.set_lfp(lfp_picture)
-        else:
-            self.set_lfp_path(lfp_path)
+        self.set_lfp_paths(lfp_paths)
 
         # Main loop
         self._tk_root.mainloop()
@@ -97,17 +107,45 @@ class LfpTkViewer():
         self.quit()
         sys.exit()
 
+
     ################################
-    # PIL
+    # Pictures
+
+    def set_lfp_paths(self, lfp_paths):
+        if lfp_paths is not None and not lfp_paths:
+            print "Select an LFP Picture file..."
+            lfp_paths = tkFileDialog.askopenfilename(
+                    title="Open an LFP Picture...",
+                    filetypes=[ ('LFP Picture', '.lfp'), ],
+                    multiple=True,
+                    defaultextension=".lfp")
+            if not lfp_paths:
+                self.quit()
+        self._lfp_paths = lfp_paths
+        if self._lfp_paths:
+            self.set_active_lfp(0)
+
+    def set_active_lfp(self, lfp_id):
+        if 0 <= lfp_id < len(self._lfp_paths):
+            self._active_lfp_id = lfp_id
+            self.set_lfp_path(self._lfp_paths[lfp_id])
+
+    def _get_lfp_picture(self, lfp_path):
+        if lfp_path not in self._lfp_picture_cache:
+            new_lfp = LfpPictureFile(lfp_path)
+            new_lfp.load()
+            new_lfp.preload_pil_images()
+            self._lfp_picture_cache[lfp_path] = new_lfp
+        return self._lfp_picture_cache[lfp_path]
 
     def set_lfp_path(self, lfp_path):
-        self.set_lfp(LfpPictureFile(lfp_path))
-
-    def set_lfp(self, lfp_picture):
-        self._lfp = lfp_picture
-        self._lfp.load()
-        self._preload_lfp_pil_images()
-        self.set_title(self._lfp.file_path)
+        self._lfp = self._get_lfp_picture(lfp_path)
+        self.set_title(
+            file_path = self._lfp.file_path,
+            file_name = self._lfp.file_name,
+            index     = self._active_lfp_id + 1,
+            count     = len(self._lfp_paths)
+            )
 
         # Verify and init view
         if self._lfp.has_refocus_stack():
@@ -121,22 +159,18 @@ class LfpTkViewer():
             #todo Processing raw data!
         '''
 
-    def _preload_lfp_pil_images(self):
-        if self._lfp.has_refocus_stack():
-            for id in self._lfp.get_refocus_stack().refocus_images:
-                self._lfp.get_pil_image('refocus', id)
-            self._lfp.get_pil_image('all_focused')
-        if self._lfp.has_parallax_stack():
-            for id in self._lfp.get_parallax_stack().parallax_images:
-                self._lfp.get_pil_image('parallax', id)
+    def next_lfp(self, event=None):
+        self.set_active_lfp(self._active_lfp_id + 1)
+
+    def prev_lfp(self, event=None):
+        self.set_active_lfp(self._active_lfp_id - 1)
+
 
     ################################
     # Title
 
-    def set_title(self, title):
-        if self._title_pattern:
-            title = self._title_pattern % title
-        self._tk_root.wm_title(title)
+    def set_title(self, **title_args):
+        self._tk_root.wm_title(self._title_pattern.format(**title_args))
 
     ################################
     # Size
@@ -145,7 +179,7 @@ class LfpTkViewer():
         if size == self._active_size:
             return
         self._active_size = size
-        self._reset_caches()
+        self._reset_image_caches()
         self._redraw_active_image()
 
     def _cb_resize(self, event):
@@ -197,7 +231,7 @@ class LfpTkViewer():
     ################################
     # PIL.Image/TK.PhotoImage Caches
 
-    def _reset_caches(self):
+    def _reset_image_caches(self):
         self._resized_pil_cache = {}
         self._resized_tkp_cache = {}
 
