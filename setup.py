@@ -23,13 +23,14 @@
 
 from distutils.core import setup
 
+release_version="2.0.0"
 
-setup(name="lfp-reader", version="2.0.0",
+setup(name="lfp-reader", version=release_version,
         description="LFP (Light Field Photography) File Reader",
         long_description=open('README.rst').read(),
 
-        url='http://code.behnam.es/python-lfp-reader/',
-        download_url='https://github.com/behnam/python-lfp-reader/',
+        url='http://behnam.github.com/python-lfp-reader/',
+        download_url='https://github.com/behnam/python-lfp-reader/archive/python-lfp-reader-%s.zip' % release_version,
 
         classifiers=[
             'Development Status :: 5 - Production/Stable',
