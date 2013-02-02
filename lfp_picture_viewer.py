@@ -25,7 +25,7 @@
 """
 
 
-import os.path
+import os, os.path
 import sys
 from cStringIO import StringIO
 
@@ -34,7 +34,15 @@ import Tkinter, tkFileDialog
 from lfp_reader.tk_lfp_viewer import TkLfpViewer
 
 
-def main(lfp_paths):
+def main(file_dir_paths):
+    lfp_paths = []
+    for x in file_dir_paths:
+        if os.path.isdir(x):
+            lfp_paths.extend(os.path.join(x, y) for y in os.listdir(x)
+                    if os.path.isfile(os.path.join(x, y))
+                    and os.path.join(x, y).lower().endswith('-stk.lfp'))
+        else:
+            lfp_paths.append(x)
     TkLfpViewer(lfp_paths)
 
 
