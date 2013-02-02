@@ -459,6 +459,8 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         """Parameters `x_f' and `y_f' are floats in range [0, 1)
         """
         pstk = self.get_parallax_stack()
+        x_f = max(0, min(x_f, 1))
+        y_f = max(0, min(y_f, 1))
         viewpoint_coord = Coord((x_f-.5) * pstk.viewpoint_width,
                                 (y_f-.5) * pstk.viewpoint_height)
         closest_image, min_euclidean_dist = None, sys.maxint

@@ -53,10 +53,12 @@ class LfpTkViewer():
             title_pattern="{file_path}   ({index}/{count})   Python LFP Reader",
             init_size=(648, 648)):
         self._title_pattern = title_pattern
+        self._lfp_picture_cache = {}
         self._lfp = None
         self._active_size = None
         self._active_pil_image = None
-        self._lfp_picture_cache = {}
+        self._active_refocus_lambda = None
+        self._active_parallax_viewp = None
 
         # Create tk window
         self._tk_root = Tkinter.Tk()
@@ -65,34 +67,42 @@ class LfpTkViewer():
         self._tk_root.configure(background='black')
         self._tk_root.wm_title("Python LFP Reader")
         # window
-        self._tk_root.bind_all('<Configure>', self._cb_resize)
-        self._tk_root.bind_all('<Control-w>', self.quit)
-        self._tk_root.bind_all('<Control-q>', self.quit_force)
+        self._tk_root.bind_all('<Configure>',   self._cb_resize)
+        self._tk_root.bind_all('<Control-w>',   self.quit)
+        self._tk_root.bind_all('<Control-q>',   self.quit_force)
         # navigation: next
-        self._tk_root.bind_all("<Right>",     self.next_lfp)
-        self._tk_root.bind_all("<n>",         self.next_lfp)
-        self._tk_root.bind_all("<space>",     self.next_lfp)
+        self._tk_root.bind_all("<Right>",       self.next_lfp)
+        self._tk_root.bind_all("<n>",           self.next_lfp)
+        self._tk_root.bind_all("<space>",       self.next_lfp)
         # navigation: previous
-        self._tk_root.bind_all("<Left>",      self.prev_lfp)
-        self._tk_root.bind_all("<p>",         self.prev_lfp)
-        self._tk_root.bind_all("<BackSpace>", self.prev_lfp)
+        self._tk_root.bind_all("<Left>",        self.prev_lfp)
+        self._tk_root.bind_all("<p>",           self.prev_lfp)
+        self._tk_root.bind_all("<BackSpace>",   self.prev_lfp)
 
         # Create tk picture
         self._tk_pic = Tkinter.Label(self._tk_root)
         self._tk_pic.pack()
-        # image: refocuse
-        self._tk_pic.bind_all("<Button-1>",  self._cb_show_refocus)
-        self._tk_pic.bind_all("<B1-Motion>", self._cb_show_refocus)
-        self._tk_pic.bind_all("<Button-4>",  self._cb_focus_farther)
-        self._tk_pic.bind_all("<Button-5>",  self._cb_focus_closer)
-        self._tk_pic.bind_all("<Button-2>",  self._cb_show_all_focused)
-        self._tk_pic.bind_all("<a>",         self._cb_show_all_focused)
+        # image: refocuse by click
+        self._tk_pic.bind_all("<Button-1>",     self._cb_refocus_at)
+        self._tk_pic.bind_all("<B1-Motion>",    self._cb_refocus_at)
+        # image: refocuse by lambda
+        self._tk_pic.bind_all("<Up>",           self._cb_refocus_farther)
+        self._tk_pic.bind_all("<Button-4>",     self._cb_refocus_farther)
+        self._tk_pic.bind_all("<Down>",         self._cb_refocus_closer)
+        self._tk_pic.bind_all("<Button-5>",     self._cb_refocus_closer)
+        # image: all focused
+        self._tk_pic.bind_all("<Button-2>",     self._cb_all_focused)
+        self._tk_pic.bind_all("<Escape>",       self._cb_all_focused)
         # image: parallax
-        self._tk_pic.bind_all("<Button-3>",  self._cb_show_parallax)
-        self._tk_pic.bind_all("<B3-Motion>", self._cb_show_parallax)
+        self._tk_pic.bind_all("<Button-3>",     self._cb_parallax_at)
+        self._tk_pic.bind_all("<B3-Motion>",    self._cb_parallax_at)
+        self._tk_pic.bind_all("<a>",            self._cb_parallax_left)
+        self._tk_pic.bind_all("<d>",            self._cb_parallax_right)
+        self._tk_pic.bind_all("<w>",            self._cb_parallax_up)
+        self._tk_pic.bind_all("<s>",            self._cb_parallax_down)
         # image: save
-        self._tk_pic.bind_all("<Return>",    self._cb_save_active_image)
-        self._tk_pic.bind_all("<Control-s>", self._cb_save_active_image_as)
+        self._tk_pic.bind_all("<Return>",       self._cb_save_active_image)
+        self._tk_pic.bind_all("<Control-s>",    self._cb_save_active_image_as)
 
         self.set_active_size(init_size)
         self.set_lfp_paths(lfp_paths)
@@ -257,10 +267,10 @@ class LfpTkViewer():
         if not self._lfp or not self._lfp.has_refocus_stack():
             return
         closest_refocus = self._lfp.find_closest_refocus_image(x_f, y_f)
-        self._active_lambda = closest_refocus.lambda_
+        self._active_refocus_lambda = closest_refocus.lambda_
         self.set_active_image('refocus', closest_refocus.id)
 
-    def _cb_show_refocus(self, event):
+    def _cb_refocus_at(self, event):
         self.show_refocus_at(
                 event.x / self._active_size[0],
                 event.y / self._active_size[1])
@@ -270,15 +280,15 @@ class LfpTkViewer():
             return
         lambda_ = max(self._lfp.get_min_lambda(), min(lambda_, self._lfp.get_max_lambda()))
         closest_refocus = self._lfp.find_closest_refocus_image_by_lambda(lambda_)
-        self._active_lambda = lambda_
+        self._active_refocus_lambda = lambda_
         self.set_active_image('refocus', closest_refocus.id)
 
-    def _cb_focus_farther(self, event):
-        new_lambda = self._active_lambda + .5
+    def _cb_refocus_farther(self, event):
+        new_lambda = self._active_refocus_lambda + .5
         self.show_refocus_lambda(new_lambda)
 
-    def _cb_focus_closer(self, event):
-        new_lambda = self._active_lambda - .5
+    def _cb_refocus_closer(self, event):
+        new_lambda = self._active_refocus_lambda - .5
         self.show_refocus_lambda(new_lambda)
 
 
@@ -290,7 +300,7 @@ class LfpTkViewer():
             return
         self.set_active_image('all_focused', None)
 
-    def _cb_show_all_focused(self, event):
+    def _cb_all_focused(self, event):
         self.show_all_focused()
 
 
@@ -300,11 +310,27 @@ class LfpTkViewer():
     def show_parallax_at(self, x_f, y_f):
         if not self._lfp or not self._lfp.has_parallax_stack():
             return
+        x_f = max(0, min(x_f, 1))
+        y_f = max(0, min(y_f, 1))
         closest_parallax = self._lfp.find_closest_parallax_image(x_f, y_f)
+        self._active_parallax_viewp = (x_f, y_f)
         self.set_active_image('parallax', closest_parallax.id)
 
-    def _cb_show_parallax(self, event):
+    def _cb_parallax_at(self, event):
         self.show_parallax_at(
                 event.x / self._active_size[0],
                 event.y / self._active_size[1])
+
+    def _cb_parallax_left(self, event):
+        vp = self._active_parallax_viewp
+        self.show_parallax_at(vp[0] - .1, vp[1])
+    def _cb_parallax_right(self, event):
+        vp = self._active_parallax_viewp
+        self.show_parallax_at(vp[0] + .1, vp[1])
+    def _cb_parallax_up(self, event):
+        vp = self._active_parallax_viewp
+        self.show_parallax_at(vp[0], vp[1] + .1)
+    def _cb_parallax_down(self, event):
+        vp = self._active_parallax_viewp
+        self.show_parallax_at(vp[0], vp[1] - .1)
 
