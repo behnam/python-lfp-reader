@@ -57,8 +57,8 @@ class LfpTkViewer():
         self._lfp = None
         self._active_size = None
         self._active_pil_image = None
-        self._active_refocus_lambda = None
-        self._active_parallax_viewp = None
+        self._active_refocus_lambda = 0
+        self._active_parallax_viewp = (.5, .5)
 
         # Create tk window
         self._tk_root = Tkinter.Tk()

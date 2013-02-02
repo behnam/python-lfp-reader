@@ -198,7 +198,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                             depth_lut=depth_lut)
 
                     elif accel_type == 'com.lytro.acceleration.edofParallax':
-                        # H264-based Extended Depth of Field Parallax
+                        # H264-based Extended Depth-Of-Field/Parallax
                         block_of_images = accel_content['blockOfImages']
                         if block_of_images['representation'] == 'h264':
                             # H264-encoded parallax stack
@@ -314,37 +314,48 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
     # Printing
 
     def print_info(self):
-        print "    Frame:"
         if self._frame:
+            print "    Frame:"
             print "\t%-20s\t%12d" % ("metadata:", self._frame.metadata.size)
             print "\t%-20s\t%12d" % ("image:", self._frame.image.size)
             print "\t%-20s\t%12d" % ("private_metadata:", self._frame.private_metadata.size)
         else:
-            print "\tNone"
+            print "    Frame:           N/A"
 
-        print "    Refocus-Stack:"
         if self._refocus_stack:
-            print "\t%-20s\t%12d" % ("refocus_images#:", len(self._refocus_stack.refocus_images))
-            print "\t%-20s\t%12s" % ("depth_lut:", "%dx%d" %
-                    (self._refocus_stack.depth_lut.width, self._refocus_stack.depth_lut.height))
-            print "\t%-20s\t%12d" % ("default_lambda:", self._refocus_stack.default_lambda)
-            print "\t%-20s\t%12d" % ("default_width:", self._refocus_stack.width)
-            print "\t%-20s\t%12d" % ("default_height:", self._refocus_stack.height)
-            print "\tAvailable Focus Depth:"
-            print "\t\t",
-            for id, rimg in self._refocus_stack.refocus_images.iteritems():
+            rstk = self.get_refocus_stack()
+            print "    Refocus-Stack:"
+            print "\t%-20s\t%12d" % ("refocus_images#:", len(rstk.refocus_images))
+            print "\t%-20s\t%12s" % ("depth_lut:", "%dx%d" % (rstk.depth_lut.width, rstk.depth_lut.height))
+            print "\t%-20s\t%12.2f" % ("default_lambda:", rstk.default_lambda)
+            print "\t%-20s\t%12.2f" % ("minimum_lambda:", rstk.min_lambda)
+            print "\t%-20s\t%12.2f" % ("maximum_lambda:", rstk.max_lambda)
+            print "\t%-20s\t%12d" % ("default_width:", rstk.width)
+            print "\t%-20s\t%12d" % ("default_height:", rstk.height)
+            print "\tlambdas:"
+            print "\t    [",
+            for id, rimg in rstk.refocus_images.iteritems():
                 print "%5.2f" % rimg.lambda_,
-            print
-            '''NOTE Depth Table is too big in new files to be shown as text
-            print "\tDepth Table:"
-            for i in xrange(self._refocus_stack.depth_lut.width):
-                print "\t\t",
-                for j in xrange(self._refocus_stack.depth_lut.height):
-                    print "%5.2f" % self._refocus_stack.depth_lut.table[j][i],
-            '''
+            print "]"
         else:
-            print "\tNone"
+            print "    Refocus-Stack:   N/A"
 
+        if self._parallax_stack:
+            pstk = self.get_parallax_stack()
+            print "    Parallax-Stack:"
+            print "\t%-20s\t%12d" % ("parallax_images#:", len(pstk.parallax_images))
+            print "\t%-20s\t%12.2f" % ("viewpoint_width:", pstk.viewpoint_width)
+            print "\t%-20s\t%12.2f" % ("viewpoint_height:", pstk.viewpoint_height)
+            print "\t%-20s\t%12d" % ("default_width:", pstk.width)
+            print "\t%-20s\t%12d" % ("default_height:", pstk.height)
+            print "\tcoordinates:"
+            print "\t    [",
+            #XXX
+            for id, pimg in pstk.parallax_images.iteritems():
+                print "(%.2f, %.2f)" % pimg.coord,
+            print "]"
+        else:
+            print "    Parallax-Stack:   N/A"
 
     ################################
     # Processing, Common
