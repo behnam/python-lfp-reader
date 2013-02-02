@@ -60,7 +60,10 @@ class LfpTkViewer():
         self._tk_root = Tkinter.Tk()
         self._tk_root.protocol("WM_DELETE_WINDOW", self.quit)
         self._tk_root.geometry("%dx%d" % init_size)
+        self._tk_root.configure(background='black')
         self._tk_root.bind('<Configure>', self._cb_resize)
+        self._tk_root.bind('<Control-w>', self.quit)
+        self._tk_root.bind('<Control-q>', self.quit)
         self.set_title(title)
 
         # Create tk picture
@@ -88,12 +91,9 @@ class LfpTkViewer():
             raise Exception("Unsupported LFP Picture file")
 
         # Main loop
-        try:
-            self._tk_root.mainloop()
-        except KeyboardInterrupt:
-            self.quit()
+        self._tk_root.mainloop()
 
-    def quit(self):
+    def quit(self, event=None):
         self._tk_root.destroy()
         self._tk_root.quit()
 
