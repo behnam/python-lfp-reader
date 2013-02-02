@@ -42,7 +42,8 @@ Install in Ubuntu
 Run following commands in a terminal::
 
     sudo apt-get install python-imaging python-imaging-tk python-gst0.10 gstreamer0.10-plugins-ugly python-pip
-    sudo pip install https://github.com/behnam/python-lfp-reader/archive/python-lfp-reader-2.0.0.tar.gz
+
+    sudo pip install https://github.com/behnam/python-lfp-reader/tarball/master
 
 
 LFP File Format
@@ -168,6 +169,7 @@ The main classes in the ``lfp_reader`` package are:
 - ``LfpGenericFile``
 - ``LfpPictureFile``
 - ``LfpStorageFile``
+- ``LfpTkViewer``
 
 
 Code License
@@ -192,6 +194,9 @@ Legal Notice
 
 This project is NOT affiliated with LYTRO, INC.  Lytro (R) is a trademark of
 LYTRO, INC. <http://www.lytro.com/>
+
+This project uses GStreamer plugins for H.264 decoding, thus includes no
+implementation of H.264 algorithms.
 
 Some of this work is based on Nirav Patel's ``lfptools`` project and his
 analysis on LFP file format.  <https://github.com/nrpatel/lfptools>

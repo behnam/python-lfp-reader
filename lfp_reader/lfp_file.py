@@ -24,6 +24,7 @@
 """Read LFP files
 """
 
+
 import os, os.path
 from operator import itemgetter
 import json
@@ -49,6 +50,7 @@ class LfpGenericFile:
         self.header = None
         self.meta = None
         self.chunks = {}
+        self._is_loaded = False
         self._file_path = file_path
         self._file_size = os.stat(file_path).st_size
         self._file = open(self._file_path, 'rb')
@@ -65,6 +67,10 @@ class LfpGenericFile:
         return self._file_path
 
     @property
+    def file_name(self):
+        return os.path.basename(self._file_path)
+
+    @property
     def chunks_sorted(self):
         return sorted(self.chunks.iteritems(), key=itemgetter(0))
 
@@ -72,6 +78,8 @@ class LfpGenericFile:
     # Loading
 
     def load(self):
+        if self._is_loaded:
+            return
         try:
             self._load_meta()
             self._load_chunks()
@@ -79,6 +87,8 @@ class LfpGenericFile:
             raise LfpGenericError("Not a valid LFP file")
 
         self.process()
+
+        self._is_loaded = True
         return self
 
     def _load_meta(self):

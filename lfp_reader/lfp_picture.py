@@ -24,6 +24,7 @@
 """Read and process LFP Picture files
 """
 
+
 import sys
 import math
 from struct import unpack
@@ -230,18 +231,24 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         except KeyError:
             raise LfpPictureError("Not a valid/supported LFP Picture file")
 
+    def has_frame(self):
+        return self._frame is not None
     def get_frame(self):
-        if not self._frame:
+        if not self.has_frame():
             raise LfpPictureError("%s: Not a valid/supported Raw LFP Picture file" % self.file_path)
         return self._frame
 
+    def has_refocus_stack(self):
+        return self._refocus_stack is not None and self._refocus_stack.refocus_images
     def get_refocus_stack(self):
-        if not self._refocus_stack or not self._refocus_stack.refocus_images:
+        if not self.has_refocus_stack():
             raise LfpPictureError("%s: Cannot find refocus data in LFP Picture file" % self.file_path)
         return self._refocus_stack
 
+    def has_parallax_stack(self):
+        return self._parallax_stack is not None and self._parallax_stack.parallax_images
     def get_parallax_stack(self):
-        if not self._parallax_stack or not self._parallax_stack.parallax_images:
+        if not self.has_parallax_stack():
             raise LfpPictureError("%s: Cannot find parallax data in LFP Picture file" % self.file_path)
         return self._parallax_stack
 

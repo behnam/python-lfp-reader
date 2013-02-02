@@ -62,6 +62,7 @@ setup(name="lfp-reader", version=release_version,
             'lfp_picture_info.py',
             'lfp_picture_viewer.py',
             'lfp_storage_exporter.py',
+            'lfp_storage_get_file.py',
             'lfp_storage_info.py',
             ],
 
