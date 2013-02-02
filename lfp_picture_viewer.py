@@ -38,7 +38,10 @@ def main(lfp_paths):
     if not lfp_paths:
         tkroot = Tkinter.Tk()
         print "Select an LFP Picture file..."
-        lfp_path = tkFileDialog.askopenfilename(defaultextension="lfp")
+        lfp_path = tkFileDialog.askopenfilename(
+                title="Open an LFP Picture...",
+                filetypes=[ ('LFP Picture', '.lfp'), ],
+                defaultextension=".lfp")
         tkroot.destroy()
         if not lfp_path:
             sys.exit(3)

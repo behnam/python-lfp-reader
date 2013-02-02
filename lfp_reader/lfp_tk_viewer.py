@@ -25,6 +25,7 @@
 """
 
 from __future__ import division
+import sys
 import os.path
 
 import Tkinter, tkFileDialog
@@ -64,11 +65,9 @@ class LfpTkViewer():
         self._tk_root.configure(background='black')
         self._tk_root.bind('<Configure>', self._cb_resize)
         self._tk_root.bind('<Control-w>', self.quit)
-        self._tk_root.bind('<Control-q>', self.quit)
-        self._tk_root.bind("<Escape>",    self.quit)
-        self._tk_root.bind("<Control-s>", self._cb_save_active_image)
+        self._tk_root.bind('<Control-q>', self.quit_force)
         self._tk_root.bind("<Return>",    self._cb_save_active_image)
-        self._tk_root.bind("<Control-a>", self._cb_show_all_focused)
+        self._tk_root.bind("<Control-s>", self._cb_save_active_image_as)
         self._tk_root.bind("<a>",         self._cb_show_all_focused)
         self.set_title("<none>")
 
@@ -94,6 +93,9 @@ class LfpTkViewer():
         self._tk_root.destroy()
         self._tk_root.quit()
 
+    def quit_force(self, event=None):
+        self.quit()
+        sys.exit()
 
     ################################
     # PIL
@@ -180,12 +182,15 @@ class LfpTkViewer():
         self._active_pil_image.save(exp_path, exp_format)
 
     def _cb_save_active_image(self, event):
-        if event.keysym == 'Return':
-            exp_path = None
-        else:
-            exp_path = tkFileDialog.asksaveasfilename(defaultextension=".jpeg")
-            if not exp_path:
-                return
+        self.save_active_image()
+
+    def _cb_save_active_image_as(self, event):
+        exp_path = tkFileDialog.asksaveasfilename(
+                title="Save image as...",
+                filetypes=[ ('JPEG', '.jpeg'), ('JPEG', '.jpg'), ],
+                defaultextension=".jpeg")
+        if not exp_path:
+            return
         self.save_active_image(exp_path)
 
 
