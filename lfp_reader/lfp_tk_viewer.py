@@ -58,40 +58,41 @@ class LfpTkViewer():
         self._active_pil_image = None
         self._lfp_picture_cache = {}
 
-        # Show tk window
+        # Create tk window
         self._tk_root = Tkinter.Tk()
         self._tk_root.protocol("WM_DELETE_WINDOW", self.quit)
         self._tk_root.geometry("%dx%d" % init_size)
         self._tk_root.configure(background='black')
         self._tk_root.wm_title("Python LFP Reader")
-
-        # window bindings
-        self._tk_root.bind('<Configure>', self._cb_resize)
-        self._tk_root.bind('<Control-w>', self.quit)
-        self._tk_root.bind('<Control-q>', self.quit_force)
-
-        # navigation bindings
-        self._tk_root.bind("<Right>",     self.next_lfp)
-        self._tk_root.bind("<n>",         self.next_lfp)
-        self._tk_root.bind("<space>",     self.next_lfp)
-
-        self._tk_root.bind("<Left>",      self.prev_lfp)
-        self._tk_root.bind("<p>",         self.prev_lfp)
-        self._tk_root.bind("<BackSpace>", self.prev_lfp)
-
-        # image bindings
-        self._tk_root.bind("<a>",         self._cb_show_all_focused)
-        self._tk_root.bind("<Return>",    self._cb_save_active_image)
-        self._tk_root.bind("<Control-s>", self._cb_save_active_image_as)
+        # window
+        self._tk_root.bind_all('<Configure>', self._cb_resize)
+        self._tk_root.bind_all('<Control-w>', self.quit)
+        self._tk_root.bind_all('<Control-q>', self.quit_force)
+        # navigation: next
+        self._tk_root.bind_all("<Right>",     self.next_lfp)
+        self._tk_root.bind_all("<n>",         self.next_lfp)
+        self._tk_root.bind_all("<space>",     self.next_lfp)
+        # navigation: previous
+        self._tk_root.bind_all("<Left>",      self.prev_lfp)
+        self._tk_root.bind_all("<p>",         self.prev_lfp)
+        self._tk_root.bind_all("<BackSpace>", self.prev_lfp)
 
         # Create tk picture
         self._tk_pic = Tkinter.Label(self._tk_root)
         self._tk_pic.pack()
-        self._tk_pic.bind("<Button-1>",  self._cb_show_refocus)
-        self._tk_pic.bind("<B1-Motion>", self._cb_show_refocus)
-        self._tk_pic.bind("<Button-2>",  self._cb_show_all_focused)
-        self._tk_pic.bind("<Button-3>",  self._cb_show_parallax)
-        self._tk_pic.bind("<B3-Motion>", self._cb_show_parallax)
+        # image: refocuse
+        self._tk_pic.bind_all("<Button-1>",  self._cb_show_refocus)
+        self._tk_pic.bind_all("<B1-Motion>", self._cb_show_refocus)
+        self._tk_pic.bind_all("<Button-4>",  self._cb_focus_farther)
+        self._tk_pic.bind_all("<Button-5>",  self._cb_focus_closer)
+        self._tk_pic.bind_all("<Button-2>",  self._cb_show_all_focused)
+        self._tk_pic.bind_all("<a>",         self._cb_show_all_focused)
+        # image: parallax
+        self._tk_pic.bind_all("<Button-3>",  self._cb_show_parallax)
+        self._tk_pic.bind_all("<B3-Motion>", self._cb_show_parallax)
+        # image: save
+        self._tk_pic.bind_all("<Return>",    self._cb_save_active_image)
+        self._tk_pic.bind_all("<Control-s>", self._cb_save_active_image_as)
 
         self.set_active_size(init_size)
         self.set_lfp_paths(lfp_paths)
@@ -149,7 +150,9 @@ class LfpTkViewer():
 
         # Verify and init view
         if self._lfp.has_refocus_stack():
-            self.show_refocus_at(.5, .5)
+            self.show_refocus_lambda(self._lfp.get_default_lambda())
+            #self.show_refocus_at(.5, .5)
+            #self.show_all_focused()
         elif self._lfp.has_parallax_stack():
             self.show_parallax_at(.5, .5)
         else:
@@ -254,12 +257,29 @@ class LfpTkViewer():
         if not self._lfp or not self._lfp.has_refocus_stack():
             return
         closest_refocus = self._lfp.find_closest_refocus_image(x_f, y_f)
+        self._active_lambda = closest_refocus.lambda_
         self.set_active_image('refocus', closest_refocus.id)
 
     def _cb_show_refocus(self, event):
         self.show_refocus_at(
                 event.x / self._active_size[0],
                 event.y / self._active_size[1])
+
+    def show_refocus_lambda(self, lambda_):
+        if not self._lfp or not self._lfp.has_refocus_stack():
+            return
+        lambda_ = max(self._lfp.get_min_lambda(), min(lambda_, self._lfp.get_max_lambda()))
+        closest_refocus = self._lfp.find_closest_refocus_image_by_lambda(lambda_)
+        self._active_lambda = lambda_
+        self.set_active_image('refocus', closest_refocus.id)
+
+    def _cb_focus_farther(self, event):
+        new_lambda = self._active_lambda + .5
+        self.show_refocus_lambda(new_lambda)
+
+    def _cb_focus_closer(self, event):
+        new_lambda = self._active_lambda - .5
+        self.show_refocus_lambda(new_lambda)
 
 
     ################################
