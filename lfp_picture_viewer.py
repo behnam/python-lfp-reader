@@ -44,7 +44,6 @@ def main(file_dir_paths):
         else:
             lfp_paths.append(x)
     viewer = TkLfpViewer(lfp_paths)
-    viewer.bind_all('<Control-q>',   viewer.destroy_quit_exit)
     viewer.mainloop()
 
 

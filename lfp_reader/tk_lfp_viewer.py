@@ -28,6 +28,7 @@
 from __future__ import division
 import sys
 import os.path
+import webbrowser
 
 import Tkinter, tkFileDialog
 
@@ -52,7 +53,7 @@ class TkLfpViewer(Tkinter.Tk):
     def __init__(self,
             lfp_paths=None,
             title_pattern="{file_path}   ({index}/{count})   Python LFP Reader",
-            init_size=(648, 648),
+            init_size=(540, 540),
             *args, **kwargs):
 
         _check_pil_module()
@@ -61,64 +62,124 @@ class TkLfpViewer(Tkinter.Tk):
         self._lfp = None
         self._active_size = None
         self._active_pil_image = None
-        self._active_refocus_lambda = 0
+        self._active_refocus_lambda = None
         self._active_parallax_viewp = (.5, .5)
 
         # Create tk window
         Tkinter.Tk.__init__(self, *args, **kwargs)
         Tkinter.Tk.protocol
-        self.protocol("WM_DELETE_WINDOW", self.destroy_quit)
+        self.protocol("WM_DELETE_WINDOW", self.quit)
         self.geometry("%dx%d" % init_size)
-        self.configure(background='black')
+        self.config(background='black')
         self.wm_title("Python LFP Reader")
         # window
-        self.bind_all('<Configure>',   self._cb_resize)
-        self.bind_all('<Control-w>',   self.destroy_quit)
+        self.bind('<Configure>',    self._cb_config)
+        self.bind('<Control-q>',    self._cb_quit)
         # navigation: next
-        self.bind_all("<Right>",       self.next_lfp)
-        self.bind_all("<n>",           self.next_lfp)
-        self.bind_all("<space>",       self.next_lfp)
+        self.bind("<Right>",        self.next_lfp)
+        self.bind("<n>",            self.next_lfp)
+        self.bind("<space>",        self.next_lfp)
         # navigation: previous
-        self.bind_all("<Left>",        self.prev_lfp)
-        self.bind_all("<p>",           self.prev_lfp)
-        self.bind_all("<BackSpace>",   self.prev_lfp)
+        self.bind("<Left>",         self.prev_lfp)
+        self.bind("<p>",            self.prev_lfp)
+        self.bind("<BackSpace>",    self.prev_lfp)
+        # image: refocuse by lambda
+        self.bind("<Up>",            self._cb_refocus_farther)
+        self.bind("<Down>",          self._cb_refocus_closer)
+        # image: all focused
+        self.bind("<Escape>",        self._cb_all_focused)
+        # image: parallax
+        self.bind("<a>",             self._cb_parallax_left)
+        self.bind("<d>",             self._cb_parallax_right)
+        self.bind("<w>",             self._cb_parallax_up)
+        self.bind("<s>",             self._cb_parallax_down)
+        # image: open/export
+        self.bind('<Control-w>',     self._cb_close_lfp)
+        self.bind("<Control-o>",     self._cb_open_files)
+        self.bind("<Control-s>",     self._cb_export_active_image_as)
+        self.bind("<Return>",        self._cb_export_active_image)
 
         # Create tk picture
-        self._tk_pic = Tkinter.Label(self)
-        self._tk_pic.pack()
+        self._pic = Tkinter.Label(self)
+        self._pic.pack()
         # image: refocuse by click
-        self._tk_pic.bind_all("<Button-1>",     self._cb_refocus_at)
-        self._tk_pic.bind_all("<B1-Motion>",    self._cb_refocus_at)
+        self._pic.bind    ("<Button-1>",    self._ms_refocus_at)
+        self._pic.bind_all("<B1-Motion>",   self._ms_refocus_at)
         # image: refocuse by lambda
-        self._tk_pic.bind_all("<Up>",           self._cb_refocus_farther)
-        self._tk_pic.bind_all("<Button-4>",     self._cb_refocus_farther)
-        self._tk_pic.bind_all("<Down>",         self._cb_refocus_closer)
-        self._tk_pic.bind_all("<Button-5>",     self._cb_refocus_closer)
+        self._pic.bind_all("<Button-4>",    self._cb_refocus_farther)
+        self._pic.bind_all("<Button-5>",    self._cb_refocus_closer)
         # image: all focused
-        self._tk_pic.bind_all("<Button-2>",     self._cb_all_focused)
-        self._tk_pic.bind_all("<Escape>",       self._cb_all_focused)
+        self._pic.bind_all("<Button-2>",    self._cb_all_focused)
         # image: parallax
-        self._tk_pic.bind_all("<Button-3>",     self._cb_parallax_at)
-        self._tk_pic.bind_all("<B3-Motion>",    self._cb_parallax_at)
-        self._tk_pic.bind_all("<a>",            self._cb_parallax_left)
-        self._tk_pic.bind_all("<d>",            self._cb_parallax_right)
-        self._tk_pic.bind_all("<w>",            self._cb_parallax_up)
-        self._tk_pic.bind_all("<s>",            self._cb_parallax_down)
-        # image: save
-        self._tk_pic.bind_all("<Return>",       self._cb_save_active_image)
-        self._tk_pic.bind_all("<Control-s>",    self._cb_save_active_image_as)
+        self._pic.bind_all("<Button-3>",    self._ms_parallax_at)
+        self._pic.bind_all("<B3-Motion>",   self._ms_parallax_at)
 
         self.set_active_size(init_size)
         self.set_lfp_paths(lfp_paths)
+        self._init_menu()
 
-    def destroy_quit(self, event=None):
-        self.destroy()
+    def _cb_config(self, event=None):
+        new_size = (min(event.width, event.height), )*2
+        self.set_active_size(new_size)
+
+    def _cb_quit(self, event=None):
         self.quit()
 
-    def destroy_quit_exit(self, event=None):
-        self.destroy()
-        self.quit()
-        sys.exit()
+
+    ################################
+    # Menu
+
+    def _init_menu(self):
+        menubar = Tkinter.Menu(self)
+
+        filemenu = Tkinter.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="LFP Viewer",
+                menu=filemenu)
+        filemenu.add_command(label="Open...",
+                command=self._cb_open_files,
+                accelerator="Ctrl+O")
+        filemenu.add_command(label="JPEG Export",
+                command=self._cb_export_active_image,
+                accelerator="Enter")
+        filemenu.add_command(label="JPEG Export as...",
+                command=self._cb_export_active_image_as,
+                accelerator="Ctrl+S")
+        filemenu.add_command(label="Close",
+                command=self._cb_close_lfp,
+                accelerator="Ctrl+W")
+        filemenu.add_separator()
+        filemenu.add_command(label="Exit",
+                command=self.quit,
+                accelerator="Ctrl+Q")
+
+        viewmenu = Tkinter.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="View",
+                menu=viewmenu)
+        viewmenu.add_command(label="Next Picture",
+                command=self.next_lfp,
+                accelerator="Right-Arrow")
+        viewmenu.add_command(label="Previous Picture",
+                command=self.prev_lfp,
+                accelerator="Left-Arrow")
+        viewmenu.add_separator()
+        viewmenu.add_command(label="Refocuse",
+                command=self.show_refocus,
+                accelerator="Left-Click")
+        viewmenu.add_command(label="All-Focused",
+                command=self.show_all_focused,
+                accelerator="Middle-Click")
+        viewmenu.add_command(label="Parallax",
+                command=self.show_parallax,
+                accelerator="Right-Click")
+
+        helpmenu = Tkinter.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="About",
+                menu=helpmenu)
+        helpmenu.add_command(label="Project Homepage",
+                command=lambda: webbrowser.open('http://code.behnam.es/python-lfp-reader'))
+
+        self.config(menu=menubar)
+        self._menubar = menubar
 
 
     ################################
@@ -127,16 +188,30 @@ class TkLfpViewer(Tkinter.Tk):
     def set_lfp_paths(self, lfp_paths):
         if lfp_paths is not None and not lfp_paths:
             print "Select an LFP Picture file..."
-            lfp_paths = tkFileDialog.askopenfilename(
-                    title="Open an LFP Picture...",
-                    filetypes=[ ('LFP Picture', '.lfp'), ],
-                    multiple=True,
-                    defaultextension=".lfp")
+            lfp_paths = self._open_files()
             if not lfp_paths:
                 self.quit()
         self._lfp_paths = lfp_paths
-        if self._lfp_paths:
-            self.set_active_lfp(0)
+        self.set_active_lfp(0)
+
+    def _cb_open_files(self, event=None):
+        lfp_paths = self._open_files()
+        if lfp_paths:
+            n = len(self._lfp_paths)
+            self._lfp_paths.extend(lfp_paths)
+            self.set_active_lfp(n)
+
+    def _open_files(self):
+        return tkFileDialog.askopenfilename(
+                title="Open an LFP Picture...",
+                filetypes=[ ('LFP Picture', '.lfp'), ],
+                multiple=True,
+                defaultextension=".lfp")
+
+    def _cb_close_lfp(self, event=None):
+        if 1 < len(self._lfp_paths):
+            self._lfp_paths.pop(self._active_lfp_id)
+            self.set_active_lfp(self._active_lfp_id-1 if self._active_lfp_id > 0 else 0)
 
     def set_active_lfp(self, lfp_id):
         if 0 <= lfp_id < len(self._lfp_paths):
@@ -145,6 +220,7 @@ class TkLfpViewer(Tkinter.Tk):
 
     def _get_lfp_picture(self, lfp_path):
         if lfp_path not in self._lfp_picture_cache:
+            #xxx self._pic.config(image=tkp_image)
             new_lfp = LfpPictureFile(lfp_path)
             new_lfp.load()
             new_lfp.preload_pil_images()
@@ -162,11 +238,9 @@ class TkLfpViewer(Tkinter.Tk):
 
         # Verify and init view
         if self._lfp.has_refocus_stack():
-            self.show_refocus_lambda(self._lfp.get_default_lambda())
-            #self.show_refocus_at(.5, .5)
-            #self.show_all_focused()
+            self.show_refocus()
         elif self._lfp.has_parallax_stack():
-            self.show_parallax_at(.5, .5)
+            self.show_parallax()
         else:
             raise Exception("Unsupported LFP Picture file")
         '''
@@ -197,10 +271,6 @@ class TkLfpViewer(Tkinter.Tk):
         self._reset_image_caches()
         self._redraw_active_image()
 
-    def _cb_resize(self, event):
-        new_size = (min(event.width, event.height), )*2
-        self.set_active_size(new_size)
-
 
     ################################
     # Active Image
@@ -219,28 +289,28 @@ class TkLfpViewer(Tkinter.Tk):
         if not self._active_pil_image:
             return
         tkp_image = self._get_resized_tkp_image(self._active_pil_image)
-        self._tk_pic.configure(image=tkp_image)
+        self._pic.config(image=tkp_image)
 
-    def save_active_image(self, exp_path=None, exp_format='jpeg'):
+    def export_active_image(self, exp_path=None, exp_format='jpeg'):
         if not exp_path:
             exp_i = 0
             while os.path.exists(self._lfp.get_export_path('%03d'%exp_i, exp_format)):
                 exp_i += 1
             exp_path = self._lfp.get_export_path('%03d'%exp_i, exp_format)
-        print "Save image to %s" % exp_path
+        print "Save JPEG image to %s" % exp_path
         self._active_pil_image.save(exp_path, exp_format)
 
-    def _cb_save_active_image(self, event):
-        self.save_active_image()
+    def _cb_export_active_image(self, event=None):
+        self.export_active_image()
 
-    def _cb_save_active_image_as(self, event):
+    def _cb_export_active_image_as(self, event=None):
         exp_path = tkFileDialog.asksaveasfilename(
-                title="Save image as...",
+                title="Save JPEG image as...",
                 filetypes=[ ('JPEG', '.jpeg'), ('JPEG', '.jpg'), ],
                 defaultextension=".jpeg")
         if not exp_path:
             return
-        self.save_active_image(exp_path)
+        self.export_active_image(exp_path)
 
 
     ################################
@@ -265,6 +335,11 @@ class TkLfpViewer(Tkinter.Tk):
     ################################
     # Refocus
 
+    def show_refocus(self):
+        if self._active_refocus_lambda is None:
+            self._active_refocus_lambda = self._lfp.get_default_lambda()
+        self.show_refocus_lambda(self._active_refocus_lambda)
+
     def show_refocus_at(self, x_f, y_f):
         if not self._lfp or not self._lfp.has_refocus_stack():
             return
@@ -272,7 +347,7 @@ class TkLfpViewer(Tkinter.Tk):
         self._active_refocus_lambda = closest_refocus.lambda_
         self.set_active_image('refocus', closest_refocus.id)
 
-    def _cb_refocus_at(self, event):
+    def _ms_refocus_at(self, event=None):
         self.show_refocus_at(
                 event.x / self._active_size[0],
                 event.y / self._active_size[1])
@@ -285,11 +360,11 @@ class TkLfpViewer(Tkinter.Tk):
         self._active_refocus_lambda = lambda_
         self.set_active_image('refocus', closest_refocus.id)
 
-    def _cb_refocus_farther(self, event):
+    def _cb_refocus_farther(self, event=None):
         new_lambda = self._active_refocus_lambda + .5
         self.show_refocus_lambda(new_lambda)
 
-    def _cb_refocus_closer(self, event):
+    def _cb_refocus_closer(self, event=None):
         new_lambda = self._active_refocus_lambda - .5
         self.show_refocus_lambda(new_lambda)
 
@@ -302,12 +377,17 @@ class TkLfpViewer(Tkinter.Tk):
             return
         self.set_active_image('all_focused', None)
 
-    def _cb_all_focused(self, event):
+    def _cb_all_focused(self, event=None):
         self.show_all_focused()
 
 
     ################################
     # Parallax
+
+    def show_parallax(self):
+        if self._active_parallax_viewp is None:
+            self._active_parallax_viewp = (.5, .5)
+        self.show_parallax_at(*self._active_parallax_viewp)
 
     def show_parallax_at(self, x_f, y_f):
         if not self._lfp or not self._lfp.has_parallax_stack():
@@ -318,21 +398,21 @@ class TkLfpViewer(Tkinter.Tk):
         self._active_parallax_viewp = (x_f, y_f)
         self.set_active_image('parallax', closest_parallax.id)
 
-    def _cb_parallax_at(self, event):
+    def _ms_parallax_at(self, event=None):
         self.show_parallax_at(
                 event.x / self._active_size[0],
                 event.y / self._active_size[1])
 
-    def _cb_parallax_left(self, event):
+    def _cb_parallax_left(self, event=None):
         vp = self._active_parallax_viewp
         self.show_parallax_at(vp[0] - .1, vp[1])
-    def _cb_parallax_right(self, event):
+    def _cb_parallax_right(self, event=None):
         vp = self._active_parallax_viewp
         self.show_parallax_at(vp[0] + .1, vp[1])
-    def _cb_parallax_up(self, event):
+    def _cb_parallax_up(self, event=None):
         vp = self._active_parallax_viewp
         self.show_parallax_at(vp[0], vp[1] + .1)
-    def _cb_parallax_down(self, event):
+    def _cb_parallax_down(self, event=None):
         vp = self._active_parallax_viewp
         self.show_parallax_at(vp[0], vp[1] - .1)
 
