@@ -43,7 +43,9 @@ def main(file_dir_paths):
                     and os.path.join(x, y).lower().endswith('-stk.lfp'))
         else:
             lfp_paths.append(x)
-    TkLfpViewer(lfp_paths)
+    viewer = TkLfpViewer(lfp_paths)
+    viewer.bind_all('<Control-q>',   viewer.destroy_quit_exit)
+    viewer.mainloop()
 
 
 def usage(errcode=0, of=sys.stderr):

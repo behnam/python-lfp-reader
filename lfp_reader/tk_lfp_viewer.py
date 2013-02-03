@@ -45,14 +45,16 @@ from lfp_reader import LfpPictureFile
 
 ################################################################
 
-class TkLfpViewer():
+class TkLfpViewer(Tkinter.Tk):
     """View and refocues Processed LFP Picture files
     """
 
     def __init__(self,
             lfp_paths=None,
             title_pattern="{file_path}   ({index}/{count})   Python LFP Reader",
-            init_size=(648, 648)):
+            init_size=(648, 648),
+            *args, **kwargs):
+
         _check_pil_module()
         self._title_pattern = title_pattern
         self._lfp_picture_cache = {}
@@ -63,26 +65,26 @@ class TkLfpViewer():
         self._active_parallax_viewp = (.5, .5)
 
         # Create tk window
-        self._tk_root = Tkinter.Tk()
-        self._tk_root.protocol("WM_DELETE_WINDOW", self.quit)
-        self._tk_root.geometry("%dx%d" % init_size)
-        self._tk_root.configure(background='black')
-        self._tk_root.wm_title("Python LFP Reader")
+        Tkinter.Tk.__init__(self, *args, **kwargs)
+        Tkinter.Tk.protocol
+        self.protocol("WM_DELETE_WINDOW", self.destroy_quit)
+        self.geometry("%dx%d" % init_size)
+        self.configure(background='black')
+        self.wm_title("Python LFP Reader")
         # window
-        self._tk_root.bind_all('<Configure>',   self._cb_resize)
-        self._tk_root.bind_all('<Control-w>',   self.quit)
-        self._tk_root.bind_all('<Control-q>',   self.quit_force)
+        self.bind_all('<Configure>',   self._cb_resize)
+        self.bind_all('<Control-w>',   self.destroy_quit)
         # navigation: next
-        self._tk_root.bind_all("<Right>",       self.next_lfp)
-        self._tk_root.bind_all("<n>",           self.next_lfp)
-        self._tk_root.bind_all("<space>",       self.next_lfp)
+        self.bind_all("<Right>",       self.next_lfp)
+        self.bind_all("<n>",           self.next_lfp)
+        self.bind_all("<space>",       self.next_lfp)
         # navigation: previous
-        self._tk_root.bind_all("<Left>",        self.prev_lfp)
-        self._tk_root.bind_all("<p>",           self.prev_lfp)
-        self._tk_root.bind_all("<BackSpace>",   self.prev_lfp)
+        self.bind_all("<Left>",        self.prev_lfp)
+        self.bind_all("<p>",           self.prev_lfp)
+        self.bind_all("<BackSpace>",   self.prev_lfp)
 
         # Create tk picture
-        self._tk_pic = Tkinter.Label(self._tk_root)
+        self._tk_pic = Tkinter.Label(self)
         self._tk_pic.pack()
         # image: refocuse by click
         self._tk_pic.bind_all("<Button-1>",     self._cb_refocus_at)
@@ -109,14 +111,12 @@ class TkLfpViewer():
         self.set_active_size(init_size)
         self.set_lfp_paths(lfp_paths)
 
-        # Main loop
-        self._tk_root.mainloop()
+    def destroy_quit(self, event=None):
+        self.destroy()
+        self.quit()
 
-    def quit(self, event=None):
-        self._tk_root.destroy()
-        self._tk_root.quit()
-
-    def quit_force(self, event=None):
+    def destroy_quit_exit(self, event=None):
+        self.destroy()
         self.quit()
         sys.exit()
 
@@ -185,7 +185,7 @@ class TkLfpViewer():
     # Title
 
     def set_title(self, **title_args):
-        self._tk_root.wm_title(self._title_pattern.format(**title_args))
+        self.wm_title(self._title_pattern.format(**title_args))
 
     ################################
     # Size
