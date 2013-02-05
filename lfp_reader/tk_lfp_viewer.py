@@ -114,9 +114,11 @@ class TkLfpViewer(Tkinter.Tk):
         self._pic.bind_all("<Button-3>",    self._ms_parallax_at)
         self._pic.bind_all("<B3-Motion>",   self._ms_parallax_at)
 
+        # Create menubar
+        self._init_menu()
+
         self.set_active_size(init_size)
         self.set_lfp_paths(lfp_paths)
-        self._init_menu()
 
     def _cb_config(self, event=None):
         new_size = (min(event.width, event.height), )*2
@@ -178,8 +180,16 @@ class TkLfpViewer(Tkinter.Tk):
         helpmenu.add_command(label="Project Homepage",
                 command=lambda: webbrowser.open('http://code.behnam.es/python-lfp-reader'))
 
+        menubar.add_command(label="")
+
         self.config(menu=menubar)
         self._menubar = menubar
+
+    def _start_loading(self):
+        self._menubar.entryconfig(4, label="Loading...")
+
+    def _end_loading(self):
+        self._menubar.entryconfig(4, label="")
 
 
     ################################
@@ -216,25 +226,28 @@ class TkLfpViewer(Tkinter.Tk):
     def set_active_lfp(self, lfp_id):
         if 0 <= lfp_id < len(self._lfp_paths):
             self._active_lfp_id = lfp_id
-            self.set_lfp_path(self._lfp_paths[lfp_id])
+            self.set_lfp_path(lfp_id)
 
     def _get_lfp_picture(self, lfp_path):
         if lfp_path not in self._lfp_picture_cache:
-            #xxx self._pic.config(image=tkp_image)
             new_lfp = LfpPictureFile(lfp_path)
             new_lfp.load()
+            self.update()
             new_lfp.preload_pil_images()
             self._lfp_picture_cache[lfp_path] = new_lfp
         return self._lfp_picture_cache[lfp_path]
 
-    def set_lfp_path(self, lfp_path):
-        self._lfp = self._get_lfp_picture(lfp_path)
+    def set_lfp_path(self, lfp_id):
+        lfp_path = self._lfp_paths[lfp_id]
         self.set_title(
-            file_path = self._lfp.file_path,
-            file_name = self._lfp.file_name,
-            index     = self._active_lfp_id + 1,
+            file_path = lfp_path,
+            index     = lfp_id + 1,
             count     = len(self._lfp_paths)
             )
+        self._start_loading()
+        self.update()
+        self._lfp = self._get_lfp_picture(lfp_path)
+        self._end_loading()
 
         # Verify and init view
         if self._lfp.has_refocus_stack():
@@ -269,7 +282,9 @@ class TkLfpViewer(Tkinter.Tk):
             return
         self._active_size = size
         self._reset_image_caches()
+        self._start_loading()
         self._redraw_active_image()
+        self._end_loading()
 
 
     ################################
