@@ -132,17 +132,20 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                     accel_content = accel_data['vendorContent']
 
                     if accel_type == 'com.lytro.acceleration.refocusStack':
+                        # Refocuse Stack
+                        refocus_images = {}
+
                         if 'imageArray' in accel_content:
                             # JPEG-based refocus stack
-                            refocus_images = { id: RefocusImage(
-                                id=id,
-                                lambda_=rimg['lambda'],
-                                width=rimg['width'],
-                                height=rimg['height'],
-                                representation=rimg['representation'],
-                                chunk=self.chunks[rimg['imageRef']],
-                                data=None)
-                                for id, rimg in enumerate(accel_content['imageArray']) }
+                            for id, rimg in enumerate(accel_content['imageArray']):
+                                refocus_images[id] = RefocusImage(
+                                        id=id,
+                                        lambda_=rimg['lambda'],
+                                        width=rimg['width'],
+                                        height=rimg['height'],
+                                        representation=rimg['representation'],
+                                        chunk=self.chunks[rimg['imageRef']],
+                                        data=None)
 
                         elif 'blockOfImages' in accel_content:
                             block_of_images = accel_content['blockOfImages']
@@ -153,15 +156,15 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                                 h264_data = self.chunks[block_of_images['blockOfImagesRef']].data
                                 h264_splitter = gst_h264_splitter.H246Splitter(h264_data, image_format=images_representation)
                                 images_data = h264_splitter.get_images()
-                                refocus_images = { id: RefocusImage(
-                                    id=id,
-                                    lambda_=rimg['lambda'],
-                                    width=rimg['width'],
-                                    height=rimg['height'],
-                                    representation=images_representation,
-                                    chunk=None,
-                                    data=images_data[id])
-                                    for id, rimg in enumerate(block_of_images['metadataArray']) }
+                                for id, rimg in enumerate(block_of_images['metadataArray']):
+                                    refocus_images[id] = RefocusImage(
+                                            id=id,
+                                            lambda_=rimg['lambda'],
+                                            width=rimg['width'],
+                                            height=rimg['height'],
+                                            representation=images_representation,
+                                            chunk=None,
+                                            data=images_data[id])
 
                             else:
                                 raise KeyError('Unsupported Processed LFP Picture file')
@@ -198,8 +201,10 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                             depth_lut=depth_lut)
 
                     elif accel_type == 'com.lytro.acceleration.edofParallax':
-                        # H264-based Extended Depth-Of-Field/Parallax
+                        # Extended Depth-Of-Field/Parallax
                         block_of_images = accel_content['blockOfImages']
+                        parallax_images = { }
+
                         if block_of_images['representation'] == 'h264':
                             # H264-encoded parallax stack
                             _check_gst_h264_splitter_module()
@@ -207,15 +212,15 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                             h264_data = self.chunks[block_of_images['blockOfImagesRef']].data
                             h264_splitter = gst_h264_splitter.H246Splitter(h264_data, image_format=images_representation)
                             images_data = h264_splitter.get_images()
-                            parallax_images = { id: ParallaxImage(
-                                id=id,
-                                coord=Coord(**pimg['coord']),
-                                width=pimg['width'],
-                                height=pimg['height'],
-                                representation=images_representation,
-                                chunk=None,
-                                data=images_data[id])
-                                for id, pimg in enumerate(block_of_images['metadataArray']) }
+                            for id, pimg in enumerate(block_of_images['metadataArray']):
+                                parallax_images[id] = ParallaxImage(
+                                    id=id,
+                                    coord=Coord(**pimg['coord']),
+                                    width=pimg['width'],
+                                    height=pimg['height'],
+                                    representation=images_representation,
+                                    chunk=None,
+                                    data=images_data[id])
 
                         max_coord_x_i = max(parallax_images, key=lambda id: parallax_images[id].coord.x)
                         max_coord_y_i = max(parallax_images, key=lambda id: parallax_images[id].coord.y)
