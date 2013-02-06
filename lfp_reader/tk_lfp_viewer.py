@@ -26,8 +26,8 @@
 
 
 from __future__ import division
-import sys
 import os.path
+import re
 import webbrowser
 
 import Tkinter, tkFileDialog
@@ -197,7 +197,7 @@ class TkLfpViewer(Tkinter.Tk):
 
     def set_lfp_paths(self, lfp_paths):
         if lfp_paths is not None and not lfp_paths:
-            print "Select an LFP Picture file..."
+            print "Select LFP Pictures..."
             lfp_paths = self._open_files()
             if not lfp_paths:
                 self.quit()
@@ -212,11 +212,17 @@ class TkLfpViewer(Tkinter.Tk):
             self.set_active_lfp(n)
 
     def _open_files(self):
-        return tkFileDialog.askopenfilename(
-                title="Open an LFP Picture...",
+        paths = tkFileDialog.askopenfilename(
+                title="Open LFP Pictures...",
                 filetypes=[ ('LFP Picture', '.lfp'), ],
                 multiple=True,
                 defaultextension=".lfp")
+        if isinstance(paths, (unicode, str)):
+            # Handle an old Python-TCL bug
+            return [ re.sub("^{|}$", "", i)
+                    for i in re.findall("{.*?}|\S+", paths) ]
+        else:
+            return paths
 
     def _cb_close_lfp(self, event=None):
         if 1 < len(self._lfp_paths):
