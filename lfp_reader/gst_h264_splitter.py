@@ -25,7 +25,14 @@ import gobject
 gobject.threads_init()
 import pygst
 pygst.require("0.10")
+
+# Handle gstreamer-python bug with command-line help options
+# https://bugzilla.gnome.org/show_bug.cgi?id=549879
+import sys, copy
+__argv = copy.copy(sys.argv)
+sys.argv = filter(lambda arg: arg not in ('-h', '--help'), sys.argv)
 import gst
+sys.argv = __argv
 
 
 ################################################################
