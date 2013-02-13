@@ -32,8 +32,8 @@ import os, os.path
 import json
 from operator import itemgetter
 
-import lfp_logging
-import lfp_section
+from . import lfp_logging
+from . import lfp_section
 
 
 ################################################################

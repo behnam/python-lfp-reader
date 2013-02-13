@@ -30,7 +30,7 @@ from __future__ import print_function
 import struct
 import json
 
-import lfp_logging
+from . import lfp_logging
 
 
 ################################################################

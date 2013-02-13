@@ -21,6 +21,8 @@
 # Copyright (C) 2012-2013  Behnam Esfahbod
 
 
+import sys
+
 import gobject
 gobject.threads_init()
 import pygst
@@ -28,9 +30,7 @@ pygst.require("0.10")
 
 # Handle gstreamer-python bug with command-line help options
 # https://bugzilla.gnome.org/show_bug.cgi?id=549879
-import sys, copy
-__argv = copy.copy(sys.argv)
-sys.argv = filter(lambda arg: arg not in ('-h', '--help'), sys.argv)
+__argv, sys.argv = sys.argv, filter(lambda arg: arg not in ('-h', '--help'), sys.argv)
 import gst
 sys.argv = __argv
 
@@ -177,7 +177,6 @@ def _split_file(file_path, image_format='jpeg'):
             f.write(img)
 
 if __name__=='__main__':
-    import sys
     if len(sys.argv) not in (2, 3):
         print "Usage: %s [h264-encoded.data]" % sys.argv[0]
         sys.exit(1)

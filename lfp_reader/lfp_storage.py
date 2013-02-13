@@ -30,7 +30,7 @@ from __future__ import print_function
 import sys
 from operator import itemgetter
 
-import lfp_file
+from . import lfp_file
 
 
 ################################################################

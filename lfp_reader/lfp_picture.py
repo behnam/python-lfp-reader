@@ -31,9 +31,12 @@ import sys
 import math
 from struct import unpack
 from collections import namedtuple
-from cStringIO import StringIO
+try:
+    from cStringIO import StringIO
+except:
+    from io import StringIO
 
-import lfp_file
+from . import lfp_file
 
 # Python Imageing Library
 try:
