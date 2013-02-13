@@ -14,6 +14,7 @@ function _test {
 	echo "# $cmd"
 	echo
 	$SCRIPT_DIR/$cmd $params
+	echo
 }
 
 _test 'info' \

@@ -32,6 +32,8 @@ from cStringIO import StringIO
 import Tkinter, tkFileDialog
 
 from lfp_reader.tk_lfp_viewer import TkLfpViewer
+from lfp_reader import lfp_logging
+lfp_logging.set_log_stream(sys.stdout)
 
 
 def main(file_dir_paths):

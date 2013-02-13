@@ -24,6 +24,10 @@
 """Read LFP Storage files
 """
 
+
+from __future__ import print_function
+
+import sys
 from operator import itemgetter
 
 import lfp_file
@@ -80,8 +84,8 @@ class LfpStorageFile(lfp_file.LfpGenericFile):
     ################################
     # Printing
 
-    def print_info(self):
-        print "    Files:"
-        for emb_path, chunk in self.files_sorted:
-            print "%12d\t%s" % (chunk.size, emb_path)
+    def print_info(self, file=sys.stdout):
+        file.write("    Files:\n")
+        file.writelines("%12d\t%s" % (chunk.size, emb_path)
+                for emb_path, chunk in self.files_sorted)
 

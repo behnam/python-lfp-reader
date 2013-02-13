@@ -29,6 +29,8 @@ import os.path
 import sys
 
 from lfp_reader import LfpPictureFile
+from lfp_reader import lfp_logging
+lfp_logging.set_log_stream(sys.stdout)
 
 
 def main(lfp_paths):

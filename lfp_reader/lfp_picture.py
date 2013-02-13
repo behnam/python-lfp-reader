@@ -25,6 +25,8 @@
 """
 
 
+from __future__ import print_function
+
 import sys
 import math
 from struct import unpack
@@ -128,7 +130,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
             # Data for processed picture file
             if picture_data['accelerationArray']:
                 for accel_data in picture_data['accelerationArray']:
-                    accel_type    = accel_data["type"]
+                    accel_type    = accel_data['type']
                     accel_content = accel_data['vendorContent']
 
                     if accel_type == 'com.lytro.acceleration.refocusStack':
@@ -318,48 +320,56 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
     ################################
     # Printing
 
-    def print_info(self):
+    def print_info(self, file=sys.stdout):
         if self._frame:
-            print "    Frame:"
-            print "\t%-20s\t%12d" % ("metadata:", self._frame.metadata.size)
-            print "\t%-20s\t%12d" % ("image:", self._frame.image.size)
-            print "\t%-20s\t%12d" % ("private_metadata:", self._frame.private_metadata.size)
+            file.writelines([
+                "    Frame:\n",
+                "\t%-20s\t%12d\n" % ("metadata:", self._frame.metadata.size),
+                "\t%-20s\t%12d\n" % ("image:", self._frame.image.size),
+                "\t%-20s\t%12d\n" % ("private_metadata:", self._frame.private_metadata.size),
+                ])
         else:
-            print "    Frame:           N/A"
+            file.write("    Frame:           N/A\n")
 
         if self._refocus_stack:
             rstk = self.get_refocus_stack()
-            print "    Refocus-Stack:"
-            print "\t%-20s\t%12d" % ("refocus_images#:", len(rstk.refocus_images))
-            print "\t%-20s\t%12s" % ("depth_lut:", "%dx%d" % (rstk.depth_lut.width, rstk.depth_lut.height))
-            print "\t%-20s\t%12.2f" % ("default_lambda:", rstk.default_lambda)
-            print "\t%-20s\t%12.2f" % ("minimum_lambda:", rstk.min_lambda)
-            print "\t%-20s\t%12.2f" % ("maximum_lambda:", rstk.max_lambda)
-            print "\t%-20s\t%12d" % ("default_width:", rstk.width)
-            print "\t%-20s\t%12d" % ("default_height:", rstk.height)
-            print "\tlambdas:"
-            print "\t    [",
-            for id, rimg in rstk.refocus_images.iteritems():
-                print "%5.2f" % rimg.lambda_,
-            print "]"
+            file.writelines([
+                "    Refocus-Stack:\n",
+                "\t%-20s\t%12d\n"   % ("refocus_images#:", len(rstk.refocus_images)),
+                "\t%-20s\t%12s\n"   % ("depth_lut:", "%dx%d" % (rstk.depth_lut.width, rstk.depth_lut.height)),
+                "\t%-20s\t%12.2f\n" % ("default_lambda:", rstk.default_lambda),
+                "\t%-20s\t%12.2f\n" % ("minimum_lambda:", rstk.min_lambda),
+                "\t%-20s\t%12.2f\n" % ("maximum_lambda:", rstk.max_lambda),
+                "\t%-20s\t%12d\n"   % ("default_width:", rstk.width),
+                "\t%-20s\t%12d\n"   % ("default_height:", rstk.height),
+                ])
+            file.writelines([
+                "\tlambdas:\n",
+                "\t    [ "])
+            file.writelines("%5.2f " % rimg.lambda_
+                    for id, rimg in rstk.refocus_images.iteritems())
+            file.write("]\n")
         else:
-            print "    Refocus-Stack:   N/A"
+            file.write("    Refocus-Stack:   N/A\n")
 
         if self._parallax_stack:
             pstk = self.get_parallax_stack()
-            print "    Parallax-Stack:"
-            print "\t%-20s\t%12d" % ("parallax_images#:", len(pstk.parallax_images))
-            print "\t%-20s\t%12.2f" % ("viewpoint_width:", pstk.viewpoint_width)
-            print "\t%-20s\t%12.2f" % ("viewpoint_height:", pstk.viewpoint_height)
-            print "\t%-20s\t%12d" % ("default_width:", pstk.width)
-            print "\t%-20s\t%12d" % ("default_height:", pstk.height)
-            print "\tcoordinates:"
-            print "\t    [",
-            for id, pimg in pstk.parallax_images.iteritems():
-                print "(%.2f, %.2f)" % pimg.coord,
-            print "]"
+            file.writelines([
+                "    Parallax-Stack:\n",
+                "\t%-20s\t%12d\n"   % ("parallax_images#:", len(pstk.parallax_images)),
+                "\t%-20s\t%12.2f\n" % ("viewpoint_width:", pstk.viewpoint_width),
+                "\t%-20s\t%12.2f\n" % ("viewpoint_height:", pstk.viewpoint_height),
+                "\t%-20s\t%12d\n"   % ("default_width:", pstk.width),
+                "\t%-20s\t%12d\n"   % ("default_height:", pstk.height),
+                ])
+            file.writelines([
+                "\tcoordinates:\n",
+                "\t    [ "])
+            file.writelines("(%.2f, %.2f) " % pimg.coord
+                for id, pimg in pstk.parallax_images.iteritems())
+            file.write("]\n")
         else:
-            print "    Parallax-Stack:   N/A"
+            file.write("    Parallax-Stack:   N/A\n")
 
     ################################
     # Processing, Common
