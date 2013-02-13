@@ -25,8 +25,12 @@
 """
 
 
+from __future__ import print_function
+
 import struct
 import json
+
+from . import lfp_logging
 
 
 ################################################################
@@ -49,13 +53,13 @@ class LfpSection:
     _sha1 = None
     _data = None
     _dpos = None
-    _inf  = None
+    _file = None
 
     ################################
     # Internals
 
-    def __init__(self, inf):
-        self._inf = inf
+    def __init__(self, file_):
+        self._file = file_
         self.read()
 
     def __repr__(self):
@@ -73,8 +77,8 @@ class LfpSection:
     @property
     def data(self):
         if self._size > 0 and self._data is None:
-            self._inf.seek(self._dpos, 0)
-            self._data = self._inf.read(self._size)
+            self._file.seek(self._dpos, 0)
+            self._data = self._file.read(self._size)
         return self._data
 
     ################################
@@ -82,24 +86,24 @@ class LfpSection:
 
     def read(self):
         # Read and check magic
-        magic = self._inf.read(self.MAGIC_LENGTH)
+        magic = self._file.read(self.MAGIC_LENGTH)
         if magic != self.MAGIC:
             raise LfpReadError("Invalid magic bytes for section %s!" % self.NAME)
         # Read size
-        self._size = struct.unpack(">i", self._inf.read(self.SIZE_LENGTH))[0]
+        self._size = struct.unpack(">i", self._file.read(self.SIZE_LENGTH))[0]
         if self._size > 0:
             # Read sha1
-            self._sha1 = self._inf.read(self.SHA1_LENGTH)
+            self._sha1 = self._file.read(self.SHA1_LENGTH)
             # Skip fixed null chars
-            self._inf.read(self.PADDING_LENGTH)
+            self._file.read(self.PADDING_LENGTH)
             # Skip data
-            self._dpos = self._inf.tell()
-            self._inf.seek(self._size, 1)
+            self._dpos = self._file.tell()
+            self._file.seek(self._size, 1)
             # Skip extra null chars
-            ch = self._inf.read(1)
+            ch = self._file.read(1)
             while ch == '\0':
-                ch = self._inf.read(1)
-            self._inf.seek(-1, 1)
+                ch = self._file.read(1)
+            self._file.seek(-1, 1)
         return self
 
     ################################
@@ -109,7 +113,8 @@ class LfpSection:
         if self.data is None:
             raise LfpReadError("No data to export for section %s!" % self.NAME)
         with open(exp_path, 'wb') as exp_file:
-            print "Create file: %s" % exp_path
+            import sys
+            lfp_logging.log("Create file: %s" % exp_path)
             exp_file.write(self.data)
 
 
@@ -119,12 +124,12 @@ class LfpSection:
 class LfpHeader(LfpSection):
     """LFP file metadata"""
     NAME = "Header"
-    MAGIC = "\x89LFP\x0D\x0A\x1A\x0A\x00\x00\x00\x01"
+    MAGIC = b'\x89LFP\x0D\x0A\x1A\x0A\x00\x00\x00\x01'
 
 class LfpMeta(LfpSection):
     """LFP file metadata"""
     NAME = "Meta"
-    MAGIC = "\x89LFM\x0D\x0A\x1A\x0A\x00\x00\x00\x00"
+    MAGIC = b'\x89LFM\x0D\x0A\x1A\x0A\x00\x00\x00\x00'
 
     _content = None
 
@@ -137,5 +142,5 @@ class LfpMeta(LfpSection):
 class LfpChunk(LfpSection):
     """LFP file data chuck"""
     NAME = "Chunk"
-    MAGIC = "\x89LFC\x0D\x0A\x1A\x0A\x00\x00\x00\x00"
+    MAGIC = b'\x89LFC\x0D\x0A\x1A\x0A\x00\x00\x00\x00'
 

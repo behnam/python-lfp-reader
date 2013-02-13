@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# python
 #
 # lfp-reader
 # LFP (Light Field Photography) File Reader.
@@ -21,38 +21,22 @@
 # Copyright (C) 2012-2013  Behnam Esfahbod
 
 
-"""Export LFP Picture file into separate data files
+"""Control logging behavior for lfp_reader package
 """
 
 
-import os.path
-import sys
-
-from lfp_reader import LfpPictureFile
+from __future__ import print_function
 
 
-def main(lfp_paths):
-    for idx, lfp_path in enumerate(lfp_paths):
-        if idx > 0: print
-        print "LFP Picture file: %s" % lfp_path
-        LfpPictureFile(lfp_path).load().export()
+_log_stream = None
 
 
-def usage(errcode=0, of=sys.stderr):
-    print >>of, ("Usage: %s picture.lfp [picture-2.lfp ...]" %
-            os.path.basename(sys.argv[0]))
-    sys.exit(errcode)
+def set_log_stream(file_=None):
+    global _log_stream
+    _log_stream = file_
 
 
-if __name__=='__main__':
-    if len(sys.argv) < 2:
-        usage(1)
-    try:
-        main(sys.argv[1:])
-    except KeyboardInterrupt:
-        sys.exit(2)
-    except Exception as err:
-        print >>sys.stderr, "Error:", err
-        if sys.platform == 'win32': raw_input()
-        sys.exit(9)
+def log(*args, **kwargs):
+    if _log_stream:
+        print(file=_log_stream, *args, **kwargs)
 

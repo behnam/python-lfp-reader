@@ -25,11 +25,15 @@
 """
 
 
-import os, os.path
-from operator import itemgetter
-import json
+from __future__ import print_function
 
-import lfp_section
+import sys
+import os, os.path
+import json
+from operator import itemgetter
+
+from . import lfp_logging
+from . import lfp_section
 
 
 ################################################################
@@ -46,14 +50,18 @@ class LfpGenericFile:
     ################################
     # Internals
 
-    def __init__(self, file_path):
+    def __init__(self, file_):
         self.header = None
         self.meta = None
         self.chunks = {}
         self._is_loaded = False
-        self._file_path = file_path
-        self._file_size = os.stat(file_path).st_size
-        self._file = open(self._file_path, 'rb')
+        if isinstance(file_, (str)):
+            self._file_path = file_
+            self._file = open(self._file_path, 'rb')
+        else:
+            self._file = file_
+            self._file_path = file_.name
+        self._file_size = os.stat(self._file_path).st_size
 
     def __del__(self):
         if hasattr(self, '_file') and self._file:
@@ -131,20 +139,20 @@ class LfpGenericFile:
     def export_write(self, exp_name, exp_ext, exp_data):
         exp_path = self.get_export_path(exp_name, exp_ext)
         with open(exp_path, 'wb') as exp_file:
-            print "Create file: %s" % exp_path
+            lfp_logging.log("Create file: %s" % exp_path)
             exp_file.write(exp_data)
 
 
     ################################
     # Printing
 
-    def print_info(self):
+    def print_info(self, file=sys.stdout):
         # Write file metadata and list its data chunks
-        print "    Metadata:"
-        for line in json.dumps(self.meta.content, indent=4).split('\n'):
-            print "\t%s" % line
-        print
-        print "    Data Chunks: %d" % len(self.chunks)
-        for sha1, chunk in self.chunks_sorted:
-            print '\t%s : %d B' % (sha1, chunk.size)
+        file.write("    Metadata:\n")
+        file.writelines("\t%s\n" % line
+                for line in json.dumps(self.meta.content, indent=4).split('\n'))
+        file.write("\n")
+        file.write("    Data Chunks: %d\n" % len(self.chunks))
+        file.writelines("\t%s : %d B\n" % (sha1, chunk.size)
+                for sha1, chunk in self.chunks_sorted)
 
