@@ -50,14 +50,18 @@ class LfpGenericFile:
     ################################
     # Internals
 
-    def __init__(self, file_path):
+    def __init__(self, file_):
         self.header = None
         self.meta = None
         self.chunks = {}
         self._is_loaded = False
-        self._file_path = file_path
-        self._file_size = os.stat(file_path).st_size
-        self._file = open(self._file_path, 'rb')
+        if isinstance(file_, (str)):
+            self._file_path = file_
+            self._file = open(self._file_path, 'rb')
+        else:
+            self._file = file_
+            self._file_path = file_.name
+        self._file_size = os.stat(self._file_path).st_size
 
     def __del__(self):
         if hasattr(self, '_file') and self._file:
