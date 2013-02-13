@@ -86,6 +86,6 @@ class LfpStorageFile(lfp_file.LfpGenericFile):
 
     def print_info(self, file=sys.stdout):
         file.write("    Files:\n")
-        file.writelines("%12d\t%s" % (chunk.size, emb_path)
+        file.writelines("%12d\t%s\n" % (chunk.size, emb_path)
                 for emb_path, chunk in self.files_sorted)
 

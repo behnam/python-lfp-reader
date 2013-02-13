@@ -14,7 +14,7 @@ function _test {
 	echo "################################"
 	echo "# $SCRIPT_CMD $subcmd"
 	echo
-	$SCRIPT_DIR/$SCRIPT_CMD -d $subcmd $params
+	$SCRIPT_DIR/$SCRIPT_CMD $subcmd -d $params
 	echo
 }
 

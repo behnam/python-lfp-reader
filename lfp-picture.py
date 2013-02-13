@@ -21,7 +21,7 @@
 # Copyright (C) 2012-2013  Behnam Esfahbod
 
 
-"""Parse LFP files and access embedded data
+"""Parse LFP Picture files and access embedded data
 """
 
 
@@ -31,7 +31,7 @@ import os.path
 import sys
 import argparse
 
-from lfp_reader import LfpGenericFile, lfp_logging
+from lfp_reader import LfpPictureFile, lfp_logging
 lfp_logging.set_log_stream(sys.stdout)
 
 
@@ -40,34 +40,25 @@ QUIET = False
 
 
 def info(lfp_files, **null):
-    """Show information about LFP file
+    """Show information about LFP Picture file
     """
     for idx, lfp_file in enumerate(lfp_files):
         if not QUIET:
             if idx > 0: print()
-            print("LFP file: %s" % lfp_file.name)
-        LfpGenericFile(lfp_file).load().print_info()
+            print("LFP Picture file: %s" % lfp_file.name)
+        LfpPictureFile(lfp_file).load().print_info()
+
 
 
 def export(lfp_files, **null):
-    """Export LFP file into separate data files
+    """Export LFP Picture file into separate data files
     """
     for idx, lfp_file in enumerate(lfp_files):
         if not QUIET:
             if idx > 0: print()
-            print("LFP file: %s" % lfp_file.name)
-        LfpGenericFile(lfp_file).load().export()
+            print("LFP Picture file: %s" % lfp_file.name)
+        LfpPictureFile(lfp_file).load().export()
 
-
-def extract(lfp_file, sha1, **null):
-    """Extract the content of a data chunk
-    """
-    lfp = LfpGenericFile(lfp_file).load()
-    try:
-        chunk = lfp.chunks[sha1]
-    except:
-        raise Exception("Cannot find data chunk `%s' in LFP file `%s'" % (sha1, lfp_file.name))
-    sys.stdout.write(chunk.data)
 
 
 def main(argv=sys.argv[1:]):
@@ -85,8 +76,8 @@ def main(argv=sys.argv[1:]):
             )
     lfp_file_kwargs = dict(
             type=argparse.FileType(mode='rb'),
-            metavar='file.lfp',
-            help='LFP file path',
+            metavar='picture.lfp',
+            help='LFP Picture file path ("IMG_0001.lfp")',
             )
 
     # Main command
@@ -107,15 +98,6 @@ def main(argv=sys.argv[1:]):
     p_export.add_argument('-q', '--quiet', **quiet_kwargs)
     p_export.add_argument('lfp_files', nargs='+', **lfp_file_kwargs)
 
-    # Extract command
-    p_extract = p_subs.add_parser('extract', help=extract.__doc__)
-    p_extract.set_defaults(subcmd=extract)
-    p_extract.add_argument('-d', '--debug', **debug_kwargs)
-    p_extract.add_argument('-q', '--quiet', **quiet_kwargs)
-    p_extract.add_argument('lfp_file', **lfp_file_kwargs)
-    p_extract.add_argument('sha1',
-            help="SHA1 key of data chunk ('sha1-...')")
-
     # Parse arguments
     try:
         args = p_main.parse_args(argv)
@@ -125,8 +107,6 @@ def main(argv=sys.argv[1:]):
             p_info.print_help()
         elif 'export' in argv:
             p_export.print_help()
-        elif 'extract' in argv:
-            p_extract.print_help()
         else:
             p_main.print_help()
         sys.exit(2)

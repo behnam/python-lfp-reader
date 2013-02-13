@@ -97,8 +97,8 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
     ################################
     # Internals
 
-    def __init__(self, file_path):
-        lfp_file.LfpGenericFile.__init__(self, file_path)
+    def __init__(self, file_):
+        lfp_file.LfpGenericFile.__init__(self, file_)
         self._frame = None
         self._refocus_stack = None
         self._parallax_stack = None
@@ -275,6 +275,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
             self.export_frame()
         if self._refocus_stack:
             self.export_refocus_stack()
+            self.export_all_focused()
         if self._parallax_stack:
             self.export_parallax_stack()
 

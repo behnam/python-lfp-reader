@@ -21,7 +21,7 @@
 # Copyright (C) 2012-2013  Behnam Esfahbod
 
 
-"""Parse LFP files and access embedded data
+"""Parse LFP Storage files and access embedded data
 """
 
 
@@ -31,7 +31,7 @@ import os.path
 import sys
 import argparse
 
-from lfp_reader import LfpGenericFile, lfp_logging
+from lfp_reader import LfpStorageFile, lfp_logging
 lfp_logging.set_log_stream(sys.stdout)
 
 
@@ -40,33 +40,34 @@ QUIET = False
 
 
 def info(lfp_files, **null):
-    """Show information about LFP file
+    """Show information about LFP Storage file
     """
     for idx, lfp_file in enumerate(lfp_files):
         if not QUIET:
             if idx > 0: print()
-            print("LFP file: %s" % lfp_file.name)
-        LfpGenericFile(lfp_file).load().print_info()
+            print("LFP Storage file: %s" % lfp_file.name)
+        LfpStorageFile(lfp_file).load().print_info()
+
 
 
 def export(lfp_files, **null):
-    """Export LFP file into separate data files
+    """Export LFP Storage file into separate data files
     """
     for idx, lfp_file in enumerate(lfp_files):
         if not QUIET:
             if idx > 0: print()
-            print("LFP file: %s" % lfp_file.name)
-        LfpGenericFile(lfp_file).load().export()
+            print("LFP Storage file: %s" % lfp_file.name)
+        LfpStorageFile(lfp_file).load().export()
 
 
-def extract(lfp_file, sha1, **null):
-    """Extract the content of a data chunk
+def extract(lfp_file, emb_path, **null):
+    """Extract the content of a LFP Storage embedded file
     """
-    lfp = LfpGenericFile(lfp_file).load()
+    lfp = LfpStorageFile(lfp_file).load()
     try:
-        chunk = lfp.chunks[sha1]
+        chunk = lfp.files[emb_path]
     except:
-        raise Exception("Cannot find data chunk `%s' in LFP file `%s'" % (sha1, lfp_file.name))
+        raise Exception("Cannot find embedded file `%s' in LFP Storage file `%s'" % (emb_path, lfp_file.name))
     sys.stdout.write(chunk.data)
 
 
@@ -85,8 +86,8 @@ def main(argv=sys.argv[1:]):
             )
     lfp_file_kwargs = dict(
             type=argparse.FileType(mode='rb'),
-            metavar='file.lfp',
-            help='LFP file path',
+            metavar='storage.lfp',
+            help='LFP Storage file path ("IMG_0001.lfp")',
             )
 
     # Main command
@@ -113,8 +114,8 @@ def main(argv=sys.argv[1:]):
     p_extract.add_argument('-d', '--debug', **debug_kwargs)
     p_extract.add_argument('-q', '--quiet', **quiet_kwargs)
     p_extract.add_argument('lfp_file', **lfp_file_kwargs)
-    p_extract.add_argument('sha1',
-            help="SHA1 key of data chunk ('sha1-...')")
+    p_extract.add_argument('emb_path',
+            help=r"Path to embedded data file ('C:\...')")
 
     # Parse arguments
     try:
