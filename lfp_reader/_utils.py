@@ -25,9 +25,55 @@
 """
 
 
+import sys
+
+
+################################
+# Dict functions
 def dict_items(d):
-    try:
+    if sys.hexversion < 0x03000000:
         return d.iteritems()
-    except AttributeError:
+    else:
         return d.items()
+
+
+################################
+# Standard Library
+if sys.hexversion < 0x03000000:
+    from cStringIO import StringIO
+    import Tkinter as tk, tkFileDialog
+else:
+    from io import StringIO
+    import tkinter as tk
+    from tkinter import filedialog as tkFileDialog
+
+
+################################
+# Python Imageing Library
+try:
+    if sys.hexversion < 0x03000000:
+        import Image as pil
+        import ImageTk as piltk
+    else:
+        from pil import Image as pil
+        from pil import ImageTk as piltk
+except ImportError:
+    pil = None
+    piltk = None
+
+def check_pil_module():
+    if pil is None:
+        raise RuntimeError("Cannot find Python Imaging Library (PIL or Pillow)")
+
+
+################################
+# GStreamer Python
+try:
+    import gst_h264_splitter
+except ImportError:
+    gst_h264_splitter = None
+
+def check_gst_h264_splitter_module():
+    if gst_h264_splitter is None:
+        raise RuntimeError("Cannot find GStreamer Python library")
 

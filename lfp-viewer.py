@@ -31,9 +31,6 @@ import os.path
 import sys
 import argparse
 
-import Tkinter, tkFileDialog
-
-
 from lfp_reader.tk_lfp_viewer import TkLfpViewer
 from lfp_reader import lfp_logging
 lfp_logging.set_log_stream(sys.stdout)

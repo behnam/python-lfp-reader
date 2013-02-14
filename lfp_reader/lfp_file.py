@@ -32,7 +32,7 @@ import os, os.path
 import json
 from operator import itemgetter
 
-from . import lfp_logging
+from .lfp_logging import log
 from . import lfp_section
 from ._utils import dict_items
 
@@ -140,7 +140,7 @@ class LfpGenericFile:
     def export_write(self, exp_name, exp_ext, exp_data):
         exp_path = self.get_export_path(exp_name, exp_ext)
         with open(exp_path, 'wb') as exp_file:
-            lfp_logging.log("Create file: %s" % exp_path)
+            log("Create file: %s" % exp_path)
             exp_file.write(exp_data)
 
 

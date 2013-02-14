@@ -30,7 +30,7 @@ from __future__ import division, print_function
 import struct
 import json
 
-from . import lfp_logging
+from .lfp_logging import log
 
 
 ################################################################
@@ -114,7 +114,7 @@ class LfpSection:
             raise LfpReadError("No data to export for section %s!" % self.NAME)
         with open(exp_path, 'wb') as exp_file:
             import sys
-            lfp_logging.log("Create file: %s" % exp_path)
+            log("Create file: %s" % exp_path)
             exp_file.write(self.data)
 
 
