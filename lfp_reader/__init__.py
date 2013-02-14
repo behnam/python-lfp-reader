@@ -76,6 +76,8 @@ Please report any problems at <https://github.com/behnam/python-lfp-reader/issue
 """
 
 
+from __future__ import division, print_function
+
 from .lfp_file      import LfpGenericFile, LfpGenericError
 from .lfp_picture   import LfpPictureFile, LfpPictureError
 from .lfp_storage   import LfpStorageFile, LfpStorageError

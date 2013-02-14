@@ -25,12 +25,13 @@
 """
 
 
-from __future__ import print_function
+from __future__ import division, print_function
 
 import sys
 from operator import itemgetter
 
 from . import lfp_file
+from ._utils import dict_items
 
 
 ################################################################
@@ -48,7 +49,7 @@ class LfpStorageFile(lfp_file.LfpGenericFile):
 
     @property
     def files_sorted(self):
-        return sorted(self.files.iteritems(), key=itemgetter(0))
+        return sorted(dict_items(self.files), key=itemgetter(0))
 
 
     ################################

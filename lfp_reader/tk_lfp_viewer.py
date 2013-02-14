@@ -25,28 +25,24 @@
 """
 
 
-from __future__ import division
+from __future__ import division, print_function
+
+import sys
 import os.path
 import re
 import webbrowser
 
-import Tkinter, tkFileDialog
+from .lfp_picture import LfpPictureFile
+from .lfp_logging import log
+from ._utils import (
+        pil, piltk, check_pil_module,
+        tk, tkFileDialog )
 
-# Python Imageing Library
-try:
-    import Image as PIL, ImageTk as TkPIL
-except ImportError:
-    PIL = None
-def _check_pil_module():
-    if PIL is None:
-        raise RuntimeError("Cannot find Python Imaging Library (PIL or Pillow)")
-
-from lfp_reader import LfpPictureFile
 
 
 ################################################################
 
-class TkLfpViewer(Tkinter.Tk):
+class TkLfpViewer(tk.Tk):
     """View and refocues Processed LFP Picture files
     """
 
@@ -56,7 +52,7 @@ class TkLfpViewer(Tkinter.Tk):
             init_size=(540, 540),
             *args, **kwargs):
 
-        _check_pil_module()
+        check_pil_module()
         self._title_pattern = title_pattern
         self._lfp_picture_cache = {}
         self._lfp = None
@@ -66,8 +62,8 @@ class TkLfpViewer(Tkinter.Tk):
         self._active_parallax_viewp = (.5, .5)
 
         # Create tk window
-        Tkinter.Tk.__init__(self, *args, **kwargs)
-        Tkinter.Tk.protocol
+        tk.Tk.__init__(self, *args, **kwargs)
+        tk.Tk.protocol
         self.protocol("WM_DELETE_WINDOW", self.quit)
         self.geometry("%dx%d" % init_size)
         self.config(background='black')
@@ -100,7 +96,7 @@ class TkLfpViewer(Tkinter.Tk):
         self.bind("<Return>",        self._cb_export_active_image)
 
         # Create tk picture
-        self._pic = Tkinter.Label(self)
+        self._pic = tk.Label(self)
         self._pic.pack()
         # image: refocuse by click
         self._pic.bind    ("<Button-1>",    self._ms_refocus_at)
@@ -132,9 +128,9 @@ class TkLfpViewer(Tkinter.Tk):
     # Menu
 
     def _init_menu(self):
-        menubar = Tkinter.Menu(self)
+        menubar = tk.Menu(self)
 
-        filemenu = Tkinter.Menu(menubar, tearoff=0)
+        filemenu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="LFP Viewer",
                 menu=filemenu)
         filemenu.add_command(label="Open...",
@@ -154,7 +150,7 @@ class TkLfpViewer(Tkinter.Tk):
                 command=self.quit,
                 accelerator="Ctrl+Q")
 
-        viewmenu = Tkinter.Menu(menubar, tearoff=0)
+        viewmenu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="View",
                 menu=viewmenu)
         viewmenu.add_command(label="Next Picture",
@@ -174,7 +170,7 @@ class TkLfpViewer(Tkinter.Tk):
                 command=self.show_parallax,
                 accelerator="Right-Click")
 
-        helpmenu = Tkinter.Menu(menubar, tearoff=0)
+        helpmenu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="About",
                 menu=helpmenu)
         helpmenu.add_command(label="Project Homepage",
@@ -197,7 +193,7 @@ class TkLfpViewer(Tkinter.Tk):
 
     def set_lfp_paths(self, lfp_paths):
         if lfp_paths is not None and not lfp_paths:
-            print "Select LFP Pictures..."
+            log("Select LFP Pictures...")
             lfp_paths = self._open_files()
             if not lfp_paths:
                 self.quit()
@@ -318,7 +314,7 @@ class TkLfpViewer(Tkinter.Tk):
             while os.path.exists(self._lfp.get_export_path('%03d'%exp_i, exp_format)):
                 exp_i += 1
             exp_path = self._lfp.get_export_path('%03d'%exp_i, exp_format)
-        print "Save JPEG image to %s" % exp_path
+        log("Save JPEG image to %s" % exp_path)
         self._active_pil_image.save(exp_path, exp_format)
 
     def _cb_export_active_image(self, event=None):
@@ -335,7 +331,7 @@ class TkLfpViewer(Tkinter.Tk):
 
 
     ################################
-    # PIL.Image/TK.PhotoImage Caches
+    # pil.Image/tk.PhotoImage Caches
 
     def _reset_image_caches(self):
         self._resized_pil_cache = {}
@@ -344,12 +340,12 @@ class TkLfpViewer(Tkinter.Tk):
     def _get_resized_tkp_image(self, pil_image):
         if pil_image not in self._resized_tkp_cache:
             resized_pil_image = self._get_resized_pil_image(pil_image)
-            self._resized_tkp_cache[pil_image] = TkPIL.PhotoImage(resized_pil_image)
+            self._resized_tkp_cache[pil_image] = piltk.PhotoImage(resized_pil_image)
         return self._resized_tkp_cache[pil_image]
 
     def _get_resized_pil_image(self, pil_image):
         if pil_image not in self._resized_pil_cache:
-            self._resized_pil_cache[pil_image] = pil_image.resize(self._active_size, PIL.ANTIALIAS)
+            self._resized_pil_cache[pil_image] = pil_image.resize(self._active_size, pil.ANTIALIAS)
         return self._resized_pil_cache[pil_image]
 
 

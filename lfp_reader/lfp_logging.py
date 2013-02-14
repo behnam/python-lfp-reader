@@ -25,7 +25,7 @@
 """
 
 
-from __future__ import print_function
+from __future__ import division, print_function
 
 
 _log_stream = None

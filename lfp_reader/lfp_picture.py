@@ -25,36 +25,18 @@
 """
 
 
-from __future__ import print_function
+from __future__ import division, print_function
 
 import sys
 import math
 from struct import unpack
 from collections import namedtuple
-try:
-    from cStringIO import StringIO
-except:
-    from io import StringIO
 
 from . import lfp_file
-
-# Python Imageing Library
-try:
-    import Image as PIL
-except ImportError:
-    PIL = None
-def _check_pil_module():
-    if PIL is None:
-        raise RuntimeError("Cannot find Python Imaging Library (PIL or Pillow)")
-
-# GStreamer Python
-try:
-    import gst_h264_splitter
-except ImportError:
-    gst_h264_splitter = None
-def _check_gst_h264_splitter_module():
-    if gst_h264_splitter is None:
-        raise RuntimeError("Cannot find GStreamer Python library")
+from ._utils import (
+        StringIO, dict_items,
+        pil, check_pil_module,
+        gst_h264_splitter, check_gst_h264_splitter_module )
 
 
 ################################################################
@@ -156,7 +138,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                             block_of_images = accel_content['blockOfImages']
                             if block_of_images['representation'] == 'h264':
                                 # H264-encoded refocus stack
-                                _check_gst_h264_splitter_module()
+                                check_gst_h264_splitter_module()
                                 images_representation = 'jpeg'
                                 h264_data = self.chunks[block_of_images['blockOfImagesRef']].data
                                 h264_splitter = gst_h264_splitter.H246Splitter(h264_data, image_format=images_representation)
@@ -183,8 +165,8 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                         depth_data  = self.chunks[accel_content['depthLut']['imageRef']].data
                         depth_table = [ [
                             unpack("f", depth_data[ (j*depth_width + i) * 4 : (j*depth_width + i+1) * 4 ])[0]
-                            for j in xrange(depth_height) ]
-                            for i in xrange(depth_width) ]
+                            for j in range(depth_height) ]
+                            for i in range(depth_width) ]
 
                         depth_lut = DepthLut(
                                 width=depth_width,
@@ -212,7 +194,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
 
                         if block_of_images['representation'] == 'h264':
                             # H264-encoded parallax stack
-                            _check_gst_h264_splitter_module()
+                            check_gst_h264_splitter_module()
                             images_representation = 'jpeg'
                             h264_data = self.chunks[block_of_images['blockOfImagesRef']].data
                             h264_splitter = gst_h264_splitter.H246Splitter(h264_data, image_format=images_representation)
@@ -285,7 +267,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         self._frame.private_metadata.export_data(self.get_export_path('frame_private_metadata', 'json'))
 
     def export_refocus_stack(self):
-        for id, rimg in self._refocus_stack.refocus_images.iteritems():
+        for id, rimg in dict_items(self._refocus_stack.refocus_images):
             r_image_name = 'refocus_%02d' % id
             if rimg.chunk:
                 rimg.chunk.export_data(self.get_export_path(r_image_name, rimg.representation))
@@ -297,7 +279,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         self.export_write('depth_lut', 'txt', self.get_depth_lut_txt())
 
     def export_parallax_stack(self):
-        for id, pimg in self._parallax_stack.parallax_images.iteritems():
+        for id, pimg in dict_items(self._parallax_stack.parallax_images):
             r_image_name = 'parallax_%02d' % id
             if pimg.chunk:
                 pimg.chunk.export_data(self.get_export_path(r_image_name, pimg.representation))
@@ -314,8 +296,8 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
     def get_depth_lut_txt(self):
         depth_lut = self._refocus_stack.depth_lut
         txt = ""
-        for i in xrange(depth_lut.width):
-            for j in xrange(depth_lut.height):
+        for i in range(depth_lut.width):
+            for j in range(depth_lut.height):
                 txt += "%9f " % depth_lut.table[j][i]
             txt += "\r\n"
         return txt
@@ -351,7 +333,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                 "\tlambdas:\n",
                 "\t    [ "])
             file.writelines("%5.2f " % rimg.lambda_
-                    for id, rimg in rstk.refocus_images.iteritems())
+                    for id, rimg in dict_items(rstk.refocus_images))
             file.write("]\n")
         else:
             file.write("    Refocus-Stack:   N/A\n")
@@ -370,7 +352,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                 "\tcoordinates:\n",
                 "\t    [ "])
             file.writelines("(%.2f, %.2f) " % pimg.coord
-                for id, pimg in pstk.parallax_images.iteritems())
+                for id, pimg in dict_items(pstk.parallax_images))
             file.write("]\n")
         else:
             file.write("    Parallax-Stack:   N/A\n")
@@ -379,13 +361,13 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
     # Processing, Common
 
     def get_pil_image(self, group, image_id=None):
-        """Cache and return a PIL.Image instances
+        """Cache and return a pil.Image instances
 
         Parameter `group' shall be one of ('refocus', 'parallax', 'all_focused')
         """
-        _check_pil_module()
+        check_pil_module()
         if group not in ('refocus', 'parallax', 'all_focused'):
-            raise KeyError('Unknown PIL cache group: %s' % group)
+            raise KeyError('Unknown pil cache group: %s' % group)
         cache = self._pil_cache
         if group not in cache:
             cache[group] = {}
@@ -405,7 +387,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
 
         if image_id not in cache[group]:
             data = img.data if img.data else img.chunk.data
-            cache[group][image_id] = PIL.open(StringIO(data))
+            cache[group][image_id] = pil.open(StringIO(data))
         return cache[group][image_id]
 
     def preload_pil_images(self):
@@ -449,9 +431,9 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         return rstk.refocus_images[closest_image_id]
 
     def _gen_pil_all_focused_image(self):
-        """Return PIL.Image instance collaged from refocus images
+        """Return pil.Image instance collaged from refocus images
         """
-        _check_pil_module()
+        check_pil_module()
         rstk = self.get_refocus_stack()
         depth_lut = rstk.depth_lut
         r_images  = rstk.refocus_images
@@ -459,10 +441,10 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         height    = rstk.height
 
         init_data = r_images[0].data if r_images[0].data else r_images[0].chunk.data
-        pil_all_focused_image = PIL.open(StringIO(init_data))
+        pil_all_focused_image = pil.open(StringIO(init_data))
 
-        for i in xrange(depth_lut.width):
-            for j in xrange(depth_lut.height):
+        for i in range(depth_lut.width):
+            for j in range(depth_lut.height):
                 box = (int(math.floor(width  * i / depth_lut.width)),
                        int(math.floor(height * j / depth_lut.height)),
                        int(math.floor(width  * (i+1) / depth_lut.width)),
@@ -493,7 +475,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         viewpoint_coord = Coord((x_f-.5) * pstk.viewpoint_width,
                                 (y_f-.5) * pstk.viewpoint_height)
         closest_image, min_euclidean_dist = None, sys.maxint
-        for id, pimg in pstk.parallax_images.iteritems():
+        for id, pimg in dict_items(pstk.parallax_images):
             euclidean_dist = ( (pimg.coord.x-viewpoint_coord.x)**2
                              + (pimg.coord.y-viewpoint_coord.y)**2 )
             if euclidean_dist < min_euclidean_dist:

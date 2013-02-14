@@ -25,12 +25,12 @@
 """
 
 
-from __future__ import print_function
+from __future__ import division, print_function
 
 import struct
 import json
 
-from . import lfp_logging
+from .lfp_logging import log
 
 
 ################################################################
@@ -93,7 +93,7 @@ class LfpSection:
         self._size = struct.unpack(">i", self._file.read(self.SIZE_LENGTH))[0]
         if self._size > 0:
             # Read sha1
-            self._sha1 = self._file.read(self.SHA1_LENGTH)
+            self._sha1 = str(self._file.read(self.SHA1_LENGTH).decode('ASCII'))
             # Skip fixed null chars
             self._file.read(self.PADDING_LENGTH)
             # Skip data
@@ -101,7 +101,7 @@ class LfpSection:
             self._file.seek(self._size, 1)
             # Skip extra null chars
             ch = self._file.read(1)
-            while ch == '\0':
+            while ch == b'\0':
                 ch = self._file.read(1)
             self._file.seek(-1, 1)
         return self
@@ -114,7 +114,7 @@ class LfpSection:
             raise LfpReadError("No data to export for section %s!" % self.NAME)
         with open(exp_path, 'wb') as exp_file:
             import sys
-            lfp_logging.log("Create file: %s" % exp_path)
+            log("Create file: %s" % exp_path)
             exp_file.write(self.data)
 
 
@@ -136,7 +136,7 @@ class LfpMeta(LfpSection):
     @property
     def content(self):
         if self._content is None:
-            self._content = json.loads(self.data)
+            self._content = json.loads(self.data.decode('ASCII'))
         return self._content
 
 class LfpChunk(LfpSection):
