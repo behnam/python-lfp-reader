@@ -54,16 +54,10 @@ setup(name="lfp-reader", version=release_version,
             ],
 
         scripts=[
-            'lfp_file_exporter.py',
-            'lfp_file_get_chunk.py',
-            'lfp_file_info.py',
-            'lfp_picture_all_focused.py',
-            'lfp_picture_exporter.py',
-            'lfp_picture_info.py',
-            'lfp_picture_viewer.py',
-            'lfp_storage_exporter.py',
-            'lfp_storage_get_file.py',
-            'lfp_storage_info.py',
+            'lfp-file.py',
+            'lfp-picture.py',
+            'lfp-storage.py',
+            'lfp-viewer.py',
             ],
 
         data_files=[
