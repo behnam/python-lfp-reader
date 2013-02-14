@@ -21,22 +21,13 @@
 # Copyright (C) 2012-2013  Behnam Esfahbod
 
 
-"""Control logging behavior for lfp_reader package
+"""Utilities for internet usage
 """
 
 
-from __future__ import division, print_function
-
-
-_log_stream = None
-
-
-def set_log_stream(file_=None):
-    global _log_stream
-    _log_stream = file_
-
-
-def log(*args, **kwargs):
-    if _log_stream:
-        print(file=_log_stream, *args, **kwargs)
+def dict_items(d):
+    try:
+        return d.iteritems()
+    except AttributeError:
+        return d.items()
 

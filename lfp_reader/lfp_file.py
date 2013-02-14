@@ -25,7 +25,7 @@
 """
 
 
-from __future__ import print_function
+from __future__ import division, print_function
 
 import sys
 import os, os.path
@@ -34,6 +34,7 @@ from operator import itemgetter
 
 from . import lfp_logging
 from . import lfp_section
+from ._utils import dict_items
 
 
 ################################################################
@@ -80,7 +81,7 @@ class LfpGenericFile:
 
     @property
     def chunks_sorted(self):
-        return sorted(self.chunks.iteritems(), key=itemgetter(0))
+        return sorted(dict_items(self.chunks), key=itemgetter(0))
 
     ################################
     # Loading
@@ -147,7 +148,8 @@ class LfpGenericFile:
     # Printing
 
     def print_info(self, file=sys.stdout):
-        # Write file metadata and list its data chunks
+        """Write file metadata and list its data chunks
+        """
         file.write("    Metadata:\n")
         file.writelines("\t%s\n" % line
                 for line in json.dumps(self.meta.content, indent=4).split('\n'))

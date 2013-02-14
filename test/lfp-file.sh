@@ -5,6 +5,8 @@ cd `dirname $0`
 SCRIPT_DIR=".."
 SAMPLE_DIR="../samples"
 SCRIPT_CMD="lfp-file.py"
+: ${PYTHON_CMD:="/usr/bin/env python"}
+
 
 function _test {
 	subcmd=$1
@@ -14,9 +16,10 @@ function _test {
 	echo "################################"
 	echo "# $SCRIPT_CMD $subcmd"
 	echo
-	$SCRIPT_DIR/$SCRIPT_CMD $subcmd -d $params
+	$PYTHON_CMD $SCRIPT_DIR/$SCRIPT_CMD $subcmd -d $params
 	echo
 }
+
 
 _test 'info' \
 	$SAMPLE_DIR/IMG_0001.lfp	\

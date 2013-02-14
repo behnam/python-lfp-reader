@@ -67,7 +67,7 @@ def extract(lfp_file, sha1, **null):
         chunk = lfp.chunks[sha1]
     except:
         raise Exception("Cannot find data chunk `%s' in LFP file `%s'" % (sha1, lfp_file.name))
-    sys.stdout.write(chunk.data)
+    sys.stdout.write(chunk.data.decode('UTF-8'))
 
 
 def main(argv=sys.argv[1:]):

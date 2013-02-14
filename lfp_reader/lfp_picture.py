@@ -25,7 +25,7 @@
 """
 
 
-from __future__ import print_function
+from __future__ import division, print_function
 
 import sys
 import math
@@ -35,8 +35,6 @@ try:
     from cStringIO import StringIO
 except:
     from io import StringIO
-
-from . import lfp_file
 
 # Python Imageing Library
 try:
@@ -55,6 +53,9 @@ except ImportError:
 def _check_gst_h264_splitter_module():
     if gst_h264_splitter is None:
         raise RuntimeError("Cannot find GStreamer Python library")
+
+from . import lfp_file
+from ._utils import dict_items
 
 
 ################################################################
@@ -183,8 +184,8 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                         depth_data  = self.chunks[accel_content['depthLut']['imageRef']].data
                         depth_table = [ [
                             unpack("f", depth_data[ (j*depth_width + i) * 4 : (j*depth_width + i+1) * 4 ])[0]
-                            for j in xrange(depth_height) ]
-                            for i in xrange(depth_width) ]
+                            for j in range(depth_height) ]
+                            for i in range(depth_width) ]
 
                         depth_lut = DepthLut(
                                 width=depth_width,
@@ -285,7 +286,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         self._frame.private_metadata.export_data(self.get_export_path('frame_private_metadata', 'json'))
 
     def export_refocus_stack(self):
-        for id, rimg in self._refocus_stack.refocus_images.iteritems():
+        for id, rimg in dict_items(self._refocus_stack.refocus_images):
             r_image_name = 'refocus_%02d' % id
             if rimg.chunk:
                 rimg.chunk.export_data(self.get_export_path(r_image_name, rimg.representation))
@@ -297,7 +298,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         self.export_write('depth_lut', 'txt', self.get_depth_lut_txt())
 
     def export_parallax_stack(self):
-        for id, pimg in self._parallax_stack.parallax_images.iteritems():
+        for id, pimg in dict_items(self._parallax_stack.parallax_images):
             r_image_name = 'parallax_%02d' % id
             if pimg.chunk:
                 pimg.chunk.export_data(self.get_export_path(r_image_name, pimg.representation))
@@ -314,8 +315,8 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
     def get_depth_lut_txt(self):
         depth_lut = self._refocus_stack.depth_lut
         txt = ""
-        for i in xrange(depth_lut.width):
-            for j in xrange(depth_lut.height):
+        for i in range(depth_lut.width):
+            for j in range(depth_lut.height):
                 txt += "%9f " % depth_lut.table[j][i]
             txt += "\r\n"
         return txt
@@ -351,7 +352,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                 "\tlambdas:\n",
                 "\t    [ "])
             file.writelines("%5.2f " % rimg.lambda_
-                    for id, rimg in rstk.refocus_images.iteritems())
+                    for id, rimg in dict_items(rstk.refocus_images))
             file.write("]\n")
         else:
             file.write("    Refocus-Stack:   N/A\n")
@@ -370,7 +371,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                 "\tcoordinates:\n",
                 "\t    [ "])
             file.writelines("(%.2f, %.2f) " % pimg.coord
-                for id, pimg in pstk.parallax_images.iteritems())
+                for id, pimg in dict_items(pstk.parallax_images))
             file.write("]\n")
         else:
             file.write("    Parallax-Stack:   N/A\n")
@@ -461,8 +462,8 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         init_data = r_images[0].data if r_images[0].data else r_images[0].chunk.data
         pil_all_focused_image = PIL.open(StringIO(init_data))
 
-        for i in xrange(depth_lut.width):
-            for j in xrange(depth_lut.height):
+        for i in range(depth_lut.width):
+            for j in range(depth_lut.height):
                 box = (int(math.floor(width  * i / depth_lut.width)),
                        int(math.floor(height * j / depth_lut.height)),
                        int(math.floor(width  * (i+1) / depth_lut.width)),
@@ -493,7 +494,7 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         viewpoint_coord = Coord((x_f-.5) * pstk.viewpoint_width,
                                 (y_f-.5) * pstk.viewpoint_height)
         closest_image, min_euclidean_dist = None, sys.maxint
-        for id, pimg in pstk.parallax_images.iteritems():
+        for id, pimg in dict_items(pstk.parallax_images):
             euclidean_dist = ( (pimg.coord.x-viewpoint_coord.x)**2
                              + (pimg.coord.y-viewpoint_coord.y)**2 )
             if euclidean_dist < min_euclidean_dist:

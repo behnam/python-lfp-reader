@@ -68,7 +68,7 @@ def extract(lfp_file, emb_path, **null):
         chunk = lfp.files[emb_path]
     except:
         raise Exception("Cannot find embedded file `%s' in LFP Storage file `%s'" % (emb_path, lfp_file.name))
-    sys.stdout.write(chunk.data)
+    sys.stdout.write(chunk.data.decode('UTF-8'))
 
 
 def main(argv=sys.argv[1:]):

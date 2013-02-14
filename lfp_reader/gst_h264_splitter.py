@@ -21,6 +21,8 @@
 # Copyright (C) 2012-2013  Behnam Esfahbod
 
 
+from __future__ import division, print_function
+
 import sys
 
 import gobject
@@ -166,19 +168,19 @@ class H246Splitter:
 # Test
 
 def _split_file(file_path, image_format='jpeg'):
-    print "H264 file: %s" % file_path
+    print("H264 file: %s" % file_path)
     input_data = open(file_path).read()
     splitter = H246Splitter(input_data, image_format)
     images = splitter.get_images()
     for idx, img in enumerate(images):
         output_name = '%s__%05d.%s' % (file_path, idx, image_format)
-        print "Create JPEG file: %s" % output_name
+        print("Create JPEG file: %s" % output_name)
         with file(output_name, 'w') as f:
             f.write(img)
 
 if __name__=='__main__':
     if len(sys.argv) not in (2, 3):
-        print "Usage: %s [h264-encoded.data]" % sys.argv[0]
+        print("Usage: %s [h264-encoded.data]" % sys.argv[0])
         sys.exit(1)
     _split_file(*sys.argv[1:])
 
