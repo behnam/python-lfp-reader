@@ -65,5 +65,8 @@ setup(name="lfp-reader", version=release_version,
                 ('COPYING.txt', 'README.rst')),
             ],
 
+        install_requires=[
+            "Pillow",
+            ],
         )
 

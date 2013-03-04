@@ -41,7 +41,7 @@ Install in Ubuntu
 
 Run following commands in a terminal::
 
-    sudo apt-get install python-imaging python-imaging-tk python-gst0.10 gstreamer0.10-plugins-ugly python-pip
+    sudo apt-get install libjpeg-dev python-gst0.10 gstreamer0.10-plugins-ugly python-pip
 
     sudo pip install https://github.com/behnam/python-lfp-reader/tarball/master
 
