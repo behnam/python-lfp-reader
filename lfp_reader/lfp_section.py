@@ -3,7 +3,7 @@
 # lfp-reader
 # LFP (Light Field Photography) File Reader.
 #
-# http://behnam.github.com/python-lfp-reader/
+# http://code.behnam.es/python-lfp-reader/
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,17 +18,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2012  Behnam Esfahbod
+# Copyright (C) 2012-2013  Behnam Esfahbod
 
 
-"""Read and verity sections of a LFP file
+"""Read and verify sections of a LFP file
 """
+
+
+from __future__ import division, print_function
 
 import struct
 import json
 
+from .lfp_logging import log
 
-################################
+
+################################################################
 # General
 
 class LfpReadError(Exception):
@@ -48,13 +53,13 @@ class LfpSection:
     _sha1 = None
     _data = None
     _dpos = None
-    _inf  = None
+    _file = None
 
-    ################
+    ################################
     # Internals
 
-    def __init__(self, inf):
-        self._inf = inf
+    def __init__(self, file_):
+        self._file = file_
         self.read()
 
     def __repr__(self):
@@ -72,68 +77,70 @@ class LfpSection:
     @property
     def data(self):
         if self._size > 0 and self._data is None:
-            self._inf.seek(self._dpos, 0)
-            self._data = self._inf.read(self._size)
+            self._file.seek(self._dpos, 0)
+            self._data = self._file.read(self._size)
         return self._data
 
-    ################
+    ################################
     # Loading
 
     def read(self):
         # Read and check magic
-        magic = self._inf.read(self.MAGIC_LENGTH)
+        magic = self._file.read(self.MAGIC_LENGTH)
         if magic != self.MAGIC:
             raise LfpReadError("Invalid magic bytes for section %s!" % self.NAME)
         # Read size
-        self._size = struct.unpack(">i", self._inf.read(self.SIZE_LENGTH))[0]
+        self._size = struct.unpack(">i", self._file.read(self.SIZE_LENGTH))[0]
         if self._size > 0:
             # Read sha1
-            self._sha1 = self._inf.read(self.SHA1_LENGTH)
+            self._sha1 = str(self._file.read(self.SHA1_LENGTH).decode('ASCII'))
             # Skip fixed null chars
-            self._inf.read(self.PADDING_LENGTH)
+            self._file.read(self.PADDING_LENGTH)
             # Skip data
-            self._dpos = self._inf.tell()
-            self._inf.seek(self._size, 1)
+            self._dpos = self._file.tell()
+            self._file.seek(self._size, 1)
             # Skip extra null chars
-            ch = self._inf.read(1)
-            while ch == '\0':
-                ch = self._inf.read(1)
-            self._inf.seek(-1, 1)
+            ch = self._file.read(1)
+            while ch == b'\0':
+                ch = self._file.read(1)
+            self._file.seek(-1, 1)
         return self
 
-    ################
+    ################################
     # Exporting
 
     def export_data(self, exp_path):
         if self.data is None:
             raise LfpReadError("No data to export for section %s!" % self.NAME)
         with open(exp_path, 'wb') as exp_file:
+            import sys
+            log("Create file: %s" % exp_path)
             exp_file.write(self.data)
 
 
-################################
+################################################################
 # Section Types
 
 class LfpHeader(LfpSection):
     """LFP file metadata"""
     NAME = "Header"
-    MAGIC = "\x89LFP\x0D\x0A\x1A\x0A\x00\x00\x00\x01"
+    MAGIC = b'\x89LFP\x0D\x0A\x1A\x0A\x00\x00\x00\x01'
 
 class LfpMeta(LfpSection):
     """LFP file metadata"""
     NAME = "Meta"
-    MAGIC = "\x89LFM\x0D\x0A\x1A\x0A\x00\x00\x00\x00"
+    MAGIC = b'\x89LFM\x0D\x0A\x1A\x0A\x00\x00\x00\x00'
 
     _content = None
 
     @property
     def content(self):
         if self._content is None:
-            self._content = json.loads(self.data)
+            self._content = json.loads(self.data.decode('ASCII'))
         return self._content
 
 class LfpChunk(LfpSection):
     """LFP file data chuck"""
     NAME = "Chunk"
-    MAGIC = "\x89LFC\x0D\x0A\x1A\x0A\x00\x00\x00\x00"
+    MAGIC = b'\x89LFC\x0D\x0A\x1A\x0A\x00\x00\x00\x00'
 
