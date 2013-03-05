@@ -58,7 +58,7 @@ class TkLfpViewer(tk.Tk):
         self._lfp = None
         self._active_size = None
         self._active_pil_image = None
-        self._active_refocus_lambda = None
+        self._active_refocus_lambda = 0
         self._active_parallax_viewp = (.5, .5)
 
         # Create tk window
@@ -80,20 +80,26 @@ class TkLfpViewer(tk.Tk):
         self.bind("<p>",            self.prev_lfp)
         self.bind("<BackSpace>",    self.prev_lfp)
         # image: refocuse by lambda
-        self.bind("<Up>",            self._cb_refocus_farther)
-        self.bind("<Down>",          self._cb_refocus_closer)
+        self.bind("<Up>",           self._cb_refocus_farther)
+        self.bind("<Down>",         self._cb_refocus_closer)
         # image: all focused
-        self.bind("<Escape>",        self._cb_all_focused)
+        self.bind("<Escape>",       self._cb_all_focused)
         # image: parallax
-        self.bind("<a>",             self._cb_parallax_left)
-        self.bind("<d>",             self._cb_parallax_right)
-        self.bind("<w>",             self._cb_parallax_up)
-        self.bind("<s>",             self._cb_parallax_down)
+        self.bind("<a>",            self._cb_parallax_left)
+        self.bind("<d>",            self._cb_parallax_right)
+        self.bind("<w>",            self._cb_parallax_up)
+        self.bind("<s>",            self._cb_parallax_down)
+        # image: all focused
+        self.bind("1",            self._cb_anaglyph)
+        self.bind("2",            self._cb_anaglyph)
+        self.bind("3",            self._cb_anaglyph)
+        self.bind("4",            self._cb_anaglyph)
+        self.bind("5",            self._cb_anaglyph)
         # image: open/export
-        self.bind('<Control-w>',     self._cb_close_lfp)
-        self.bind("<Control-o>",     self._cb_open_files)
-        self.bind("<Control-s>",     self._cb_export_active_image_as)
-        self.bind("<Return>",        self._cb_export_active_image)
+        self.bind('<Control-w>',    self._cb_close_lfp)
+        self.bind("<Control-o>",    self._cb_open_files)
+        self.bind("<Control-s>",    self._cb_export_active_image_as)
+        self.bind("<Return>",       self._cb_export_active_image)
 
         # Create tk picture
         self._pic = tk.Label(self)
@@ -169,6 +175,22 @@ class TkLfpViewer(tk.Tk):
         viewmenu.add_command(label="Parallax",
                 command=self.show_parallax,
                 accelerator="Right-Click")
+        viewmenu.add_separator()
+        viewmenu.add_command(label="Anaglyph (true)",
+                command=lambda: self.show_anaglyph('true'),
+                accelerator="1")
+        viewmenu.add_command(label="Anaglyph (gray)",
+                command=lambda: self.show_anaglyph('gray'),
+                accelerator="2")
+        viewmenu.add_command(label="Anaglyph (color)",
+                command=lambda: self.show_anaglyph('color'),
+                accelerator="3")
+        viewmenu.add_command(label="Anaglyph (half_color)",
+                command=lambda: self.show_anaglyph('half_color'),
+                accelerator="4")
+        viewmenu.add_command(label="Anaglyph (optimized)",
+                command=lambda: self.show_anaglyph('optimized'),
+                accelerator="5")
 
         helpmenu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="About",
@@ -252,15 +274,17 @@ class TkLfpViewer(tk.Tk):
         self._end_loading()
 
         # Verify and init view
+
         if self._lfp.has_refocus_stack():
             self.show_refocus()
         elif self._lfp.has_parallax_stack():
             self.show_parallax()
         else:
             raise Exception("Unsupported LFP Picture file")
-        '''
+
+        '''TODO
         elif self._lfp.has_frame():
-            #todo Processing raw data!
+            # Processing raw data!
         '''
 
     def next_lfp(self, event=None):
@@ -353,8 +377,6 @@ class TkLfpViewer(tk.Tk):
     # Refocus
 
     def show_refocus(self):
-        if self._active_refocus_lambda is None:
-            self._active_refocus_lambda = self._lfp.get_default_lambda()
         self.show_refocus_lambda(self._active_refocus_lambda)
 
     def show_refocus_at(self, x_f, y_f):
@@ -402,9 +424,7 @@ class TkLfpViewer(tk.Tk):
     # Parallax
 
     def show_parallax(self):
-        if self._active_parallax_viewp is None:
-            self._active_parallax_viewp = (.5, .5)
-        self.show_parallax_at(*self._active_parallax_viewp)
+        self.show_parallax_at(self._active_parallax_viewp)
 
     def show_parallax_at(self, x_f, y_f):
         if not self._lfp or not self._lfp.has_parallax_stack():
@@ -432,4 +452,18 @@ class TkLfpViewer(tk.Tk):
     def _cb_parallax_down(self, event=None):
         vp = self._active_parallax_viewp
         self.show_parallax_at(vp[0], vp[1] - .1)
+
+
+    ################################
+    # Anaglyph
+
+    def show_anaglyph(self, method):
+        if isinstance(method, int):
+            method = ['true', 'gray', 'color', 'half_color', 'optimized'][method-1]
+        if not self._lfp or not self._lfp.has_refocus_stack():
+            return
+        self.set_active_image('anaglyph', method)
+
+    def _cb_anaglyph(self, event=None):
+        self.show_anaglyph(int(event.char))
 

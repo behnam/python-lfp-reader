@@ -36,7 +36,8 @@ from . import lfp_file
 from ._utils import (
         StringIO, dict_items,
         pil, check_pil_module,
-        gst_h264_splitter, check_gst_h264_splitter_module )
+        gst_h264_splitter, check_gst_h264_splitter_module,
+        numpy, check_numpy_module )
 
 
 ################################################################
@@ -366,28 +367,30 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
         Parameter `group' shall be one of ('refocus', 'parallax', 'all_focused')
         """
         check_pil_module()
-        if group not in ('refocus', 'parallax', 'all_focused'):
+        if group not in ('refocus', 'all_focused', 'parallax', 'anaglyph'):
             raise KeyError('Unknown pil cache group: %s' % group)
         cache = self._pil_cache
         if group not in cache:
             cache[group] = {}
-
-        if group == 'all_focused' and image_id is None:
+        if group == 'all_focused':
+            if image_id is not None:
+                raise KeyError('Invalid image_id "%s" for group %s' % (image_id, group))
             image_id = '_'
-            if image_id not in cache[group]:
-                cache[group][image_id] = self._gen_pil_all_focused_image()
-            return cache[group][image_id]
-
-        if group == 'refocus' and image_id is not None:
-            img = self.get_refocus_stack().refocus_images[image_id]
-        elif group == 'parallax' and image_id is not None:
-            img = self.get_parallax_stack().parallax_images[image_id]
         else:
-            raise KeyError('Invalid image_id: %s' % image_id)
-
+            if image_id is None:
+                raise KeyError('image_id is required for group %s' % (image_id, group))
         if image_id not in cache[group]:
-            data = img.data if img.data else img.chunk.data
-            cache[group][image_id] = pil.open(StringIO(data))
+            if group == 'all_focused':
+                cache[group][image_id] = self._gen_pil_all_focused_image()
+            elif group == 'anaglyph':
+                cache[group][image_id] = self._gen_pil_anaglyph_image(image_id)
+            else:
+                if group == 'refocus':
+                    img = self.get_refocus_stack().refocus_images[image_id]
+                else:
+                    img = self.get_parallax_stack().parallax_images[image_id]
+                data = img.data if img.data else img.chunk.data
+                cache[group][image_id] = pil.open(StringIO(data))
         return cache[group][image_id]
 
     def preload_pil_images(self):
@@ -450,8 +453,8 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
                        int(math.floor(width  * (i+1) / depth_lut.width)),
                        int(math.floor(height * (j+1) / depth_lut.height)))
                 closest_image = self.find_closest_refocus_image_by_lut_idx(i, j)
-                pil_all_focused = self.get_pil_image('refocus', closest_image.id)
-                piece = pil_all_focused.crop(box)
+                pil_image = self.get_pil_image('refocus', closest_image.id)
+                piece = pil_image.crop(box)
                 pil_all_focused_image.paste(piece, box)
         return pil_all_focused_image
 
@@ -481,4 +484,46 @@ class LfpPictureFile(lfp_file.LfpGenericFile):
             if euclidean_dist < min_euclidean_dist:
                 closest_image, min_euclidean_dist = pimg, euclidean_dist
         return closest_image
+
+    # Anaglyph
+
+    def _gen_pil_anaglyph_image(self, anaglyph_method='true'):
+        """Return pil.Image instance of Red/Cyan anaglyph from parallax stack
+        """
+        check_pil_module()
+        check_numpy_module()
+        pstk = self.get_parallax_stack()
+        p_images  = pstk.parallax_images
+        image_id_left = min(p_images, key=lambda id: p_images[id].coord.x)
+        image_id_right = max(p_images, key=lambda id: p_images[id].coord.x)
+        pil_image_left = self.get_pil_image('parallax', image_id_left)
+        pil_image_right = self.get_pil_image('parallax', image_id_right)
+        return self._anaglyph_composition(pil_image_left, pil_image_right, anaglyph_method)
+
+    @staticmethod
+    def _anaglyph_composition(pimage1, pimage2, anaglyph_method='true'):
+        _magic = [0.299, 0.587, 0.114]
+        _zero = [0, 0, 0]
+        _ident = [ [1, 0, 0], [0, 1, 0], [0, 0, 1] ]
+        _anaglyph_methods = {
+                'true':         ([_magic,        _zero, _zero], [_zero, _zero,     _magic]),
+                'gray':         ([_magic,        _zero, _zero], [_zero, _magic,    _magic]),
+                'color':        ([_ident[0],     _zero, _zero], [_zero, _ident[1], _ident[2]]),
+                'half_color':   ([_magic,        _zero, _zero], [_zero, _ident[1], _ident[2]]),
+                'optimized':    ([[0, 0.7, 0.3], _zero, _zero], [_zero, _ident[1], _ident[2]]),
+                }
+
+        def _pil_image_to_numpy_array(im):
+            s = im.tostring()
+            dim = len(im.getbands())
+            return numpy.fromstring(s, numpy.uint8).reshape(len(s)/dim, dim)
+
+        def _numpy_array_to_pil_image(mode, size, arr):
+            return pil.fromstring(mode, size, arr.reshape(len(arr)*len(mode), 1).astype(numpy.uint8).tostring())
+
+        m1, m2 = [numpy.array(m).transpose() for m in _anaglyph_methods[anaglyph_method]]
+        composite = (
+                numpy.dot(_pil_image_to_numpy_array(pimage1), m1) +
+                numpy.dot(_pil_image_to_numpy_array(pimage2), m2) )
+        return _numpy_array_to_pil_image(pimage1.mode, pimage1.size, composite)
 

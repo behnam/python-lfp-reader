@@ -49,6 +49,18 @@ else:
 
 
 ################################
+# NumPy
+try:
+    import numpy
+except ImportError:
+    numpy = None
+
+def check_numpy_module():
+    if numpy is None:
+        raise RuntimeError("Cannot find NumPy library")
+
+
+################################
 # Python Imageing Library
 try:
     if sys.hexversion < 0x03000000:
