@@ -52,10 +52,8 @@ else:
 # Python Imageing Library
 try:
     if sys.hexversion < 0x03000000:
-        import Image as pil #for pil library only
-        import ImageTk as piltk #for pil library only
-        from PIL import Image as pil #for pillow library only
-        from PIL import ImageTk as piltk #for pillow library only
+        import Image as pil
+        import ImageTk as piltk
         
     else:
         from pil import Image as pil
