@@ -51,19 +51,20 @@ else:
 ################################
 # Python Imageing Library
 try:
-    if sys.hexversion < 0x03000000:
-        import Image as pil
-        import ImageTk as piltk
-    else:
-        from pil import Image as pil
-        from pil import ImageTk as piltk
+    from PIL import Image as pil
 except ImportError:
     pil = None
+
+try:
+    from PIL import ImageTk as piltk
+except ImportError:
     piltk = None
 
 def check_pil_module():
     if pil is None:
         raise RuntimeError("Cannot find Python Imaging Library (PIL or Pillow)")
+    if piltk is None:
+        raise RuntimeError("Cannot find Tk binding for Python Imaging Library (PIL or Pillow)")
 
 
 ################################
